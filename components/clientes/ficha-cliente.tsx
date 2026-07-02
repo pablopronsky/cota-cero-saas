@@ -40,15 +40,14 @@ export function FichaCliente({ codigo }: { codigo: string }) {
   async function toggleEstado() {
     if (!cliente) return;
     setCambiandoEstado(true);
-    try {
-      const nuevo = cliente.estado === "Activo" ? "Inactivo" : "Activo";
-      await cambiarEstadoCliente(codigo, nuevo);
-      toast.success(`Cliente ${nuevo.toLowerCase()}`);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "No se pudo cambiar el estado");
-    } finally {
-      setCambiandoEstado(false);
+    const nuevo = cliente.estado === "Activo" ? "Inactivo" : "Activo";
+    const res = await cambiarEstadoCliente(codigo, nuevo);
+    setCambiandoEstado(false);
+    if (!res.ok) {
+      toast.error(res.error);
+      return;
     }
+    toast.success(`Cliente ${nuevo.toLowerCase()}`);
   }
 
   return (

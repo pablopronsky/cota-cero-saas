@@ -49,17 +49,16 @@ export function ClienteAltaRapidaDialog({ open, onOpenChange, onCreado }: Props)
     e.preventDefault();
     setError(null);
     setGuardando(true);
-    try {
-      const res = await crearCliente({ nombre, telefono });
-      toast.success(`Cliente creado: ${res.codigo}`);
-      onCreado?.({ codigo: res.codigo, nombre, telefono });
-      onOpenChange(false);
-      reset();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "No se pudo crear el cliente");
-    } finally {
-      setGuardando(false);
+    const res = await crearCliente({ nombre, telefono });
+    setGuardando(false);
+    if (!res.ok) {
+      setError(res.error);
+      return;
     }
+    toast.success(`Cliente creado: ${res.codigo}`);
+    onCreado?.({ codigo: res.codigo, nombre, telefono });
+    onOpenChange(false);
+    reset();
   }
 
   return (

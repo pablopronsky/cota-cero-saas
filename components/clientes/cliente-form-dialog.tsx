@@ -60,21 +60,27 @@ export function ClienteFormDialog({
     e.preventDefault();
     setError(null);
     setGuardando(true);
-    try {
-      if (codigo) {
-        await actualizarCliente(codigo, datos);
-        toast.success("Cliente actualizado");
-      } else {
-        const res = await crearCliente(datos);
-        toast.success(`Cliente creado: ${res.codigo}`);
-      }
-      onOpenChange(false);
-      onGuardado?.();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "No se pudo guardar el cliente");
-    } finally {
+
+    if (codigo) {
+      const res = await actualizarCliente(codigo, datos);
       setGuardando(false);
+      if (!res.ok) {
+        setError(res.error);
+        return;
+      }
+      toast.success("Cliente actualizado");
+    } else {
+      const res = await crearCliente(datos);
+      setGuardando(false);
+      if (!res.ok) {
+        setError(res.error);
+        return;
+      }
+      toast.success(`Cliente creado: ${res.codigo}`);
     }
+
+    onOpenChange(false);
+    onGuardado?.();
   }
 
   return (
