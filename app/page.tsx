@@ -1,5 +1,7 @@
 import { adminDb } from "@/lib/firebase/admin";
 
+export const dynamic = "force-dynamic";
+
 async function verificarConexion(): Promise<{ ok: true } | { ok: false; error: string }> {
   try {
     await adminDb.collection("_ping").limit(1).get();
