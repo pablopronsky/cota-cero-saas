@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ClienteFormDialog } from "@/components/clientes/cliente-form-dialog";
+import { HistorialPresupuestosCliente } from "@/components/presupuestos/historial-cliente";
 
 export function FichaCliente({ codigo }: { codigo: string }) {
   const [cliente, setCliente] = useState<Cliente | null | undefined>(undefined);
@@ -126,8 +127,8 @@ export function FichaCliente({ codigo }: { codigo: string }) {
           <CardHeader>
             <CardTitle>Presupuestos</CardTitle>
           </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
-            Próximamente (Fase 6).
+          <CardContent>
+            <HistorialPresupuestosCliente clienteId={codigo} />
           </CardContent>
         </Card>
         <Card>

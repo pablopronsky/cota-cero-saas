@@ -7,14 +7,21 @@ import { toast } from "sonner";
 import { db } from "@/lib/firebase/client";
 import { calcularTotales, gruposIncluidos } from "@/lib/reglas/totales";
 import { precioEfectivo } from "@/lib/reglas/precios";
-import { crearPresupuesto, type DatosItemPresupuesto } from "@/lib/acciones/presupuestos";
+import {
+  crearPresupuesto,
+  crearVersionPresupuesto,
+  actualizarPresupuesto,
+  type DatosItemPresupuesto,
+} from "@/lib/acciones/presupuestos";
 import type {
   Cliente,
   ConfigGeneral,
   GrupoContable,
   ItemCatalogo,
   ModalidadPresupuesto,
+  Presupuesto,
 } from "@/lib/tipos";
+import type { Timestamp } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -74,6 +81,41 @@ interface ItemRow {
   grupoContable: GrupoContable;
   m2PorCaja: number | null;
   requiereVerificacion: boolean;
+  /** Solo en modo duplicar, tras usar "Actualizar precios desde catálogo". */
+  precioAnterior?: number;
+}
+
+export interface ItemPrefill {
+  catalogoId: string | null;
+  codigo: string;
+  nombre: string;
+  rubro: string;
+  unidad: string;
+  cantidad: number;
+  precioUnitario: number;
+  grupoContable: GrupoContable;
+  requiereVerificacion: boolean;
+}
+
+export interface PresupuestoPrefill {
+  clienteId: string;
+  clienteNombre: string;
+  telefono: string;
+  direccionObra: string;
+  tipoObra: string;
+  vendedor: string;
+  fechaVisita: string;
+  fechaEmision: string;
+  m2Relevados: number;
+  subpiso: string;
+  nivelSubpiso: string;
+  observacionesRiesgos: string;
+  modalidad: ModalidadPresupuesto;
+  formaPago: string;
+  validez: string;
+  moneda: string;
+  exclusiones: string;
+  items: ItemPrefill[];
 }
 
 let contadorLocal = 0;
@@ -84,8 +126,18 @@ function nuevaKey() {
 
 const fmtMoneda = (n: number) => n.toLocaleString("es-AR", { style: "currency", currency: "ARS" });
 
-export function PresupuestoForm() {
+interface Props {
+  /** crear (default): obra nueva v1. editar: in-place sobre presupuestoId. duplicar: nuevo doc, precargado. */
+  modo?: "crear" | "editar" | "duplicar";
+  presupuestoId?: string;
+  /** Solo modo=duplicar con destino "nueva versión de esta obra". */
+  obraCodigoDestino?: string;
+  prefill?: PresupuestoPrefill;
+}
+
+export function PresupuestoForm({ modo = "crear", presupuestoId, obraCodigoDestino, prefill }: Props) {
   const router = useRouter();
+  const clienteBloqueado = modo === "editar" || (modo === "duplicar" && !!obraCodigoDestino);
 
   const [clientes, setClientes] = useState<ClienteConCodigo[] | null>(null);
   const [catalogo, setCatalogo] = useState<CatalogoConId[] | null>(null);
@@ -119,21 +171,38 @@ export function PresupuestoForm() {
   const tcUsd = config?.tcUsd ?? 0;
 
   // Cabecera
-  const [clienteSeleccionado, setClienteSeleccionado] = useState<ClienteSeleccion | null>(null);
-  const [telefono, setTelefono] = useState("");
-  const [direccionObra, setDireccionObra] = useState("");
-  const [tipoObra, setTipoObra] = useState("");
-  const [vendedor, setVendedor] = useState("");
+  const [clienteSeleccionado, setClienteSeleccionado] = useState<ClienteSeleccion | null>(
+    prefill ? { codigo: prefill.clienteId, nombre: prefill.clienteNombre, telefono: prefill.telefono } : null,
+  );
+  const [telefono, setTelefono] = useState(prefill?.telefono ?? "");
+  const [direccionObra, setDireccionObra] = useState(prefill?.direccionObra ?? "");
+  const [tipoObra, setTipoObra] = useState(prefill?.tipoObra ?? "");
+  const [vendedor, setVendedor] = useState(prefill?.vendedor ?? "");
   const hoy = useMemo(() => new Date().toISOString().slice(0, 10), []);
-  const [fechaVisita, setFechaVisita] = useState(hoy);
-  const [fechaEmision, setFechaEmision] = useState(hoy);
-  const [m2Relevados, setM2Relevados] = useState<number>(0);
-  const [subpiso, setSubpiso] = useState("");
-  const [nivelSubpiso, setNivelSubpiso] = useState("");
-  const [observacionesRiesgos, setObservacionesRiesgos] = useState("");
+  const [fechaVisita, setFechaVisita] = useState(prefill?.fechaVisita ?? hoy);
+  const [fechaEmision, setFechaEmision] = useState(prefill?.fechaEmision ?? hoy);
+  const [m2Relevados, setM2Relevados] = useState<number>(prefill?.m2Relevados ?? 0);
+  const [subpiso, setSubpiso] = useState(prefill?.subpiso ?? "");
+  const [nivelSubpiso, setNivelSubpiso] = useState(prefill?.nivelSubpiso ?? "");
+  const [observacionesRiesgos, setObservacionesRiesgos] = useState(prefill?.observacionesRiesgos ?? "");
 
-  const [modalidad, setModalidad] = useState<ModalidadPresupuesto>("integrada");
-  const [items, setItems] = useState<ItemRow[]>([]);
+  const [modalidad, setModalidad] = useState<ModalidadPresupuesto>(prefill?.modalidad ?? "integrada");
+  const [items, setItems] = useState<ItemRow[]>(
+    () =>
+      prefill?.items.map((i) => ({
+        key: nuevaKey(),
+        catalogoId: i.catalogoId,
+        codigo: i.codigo,
+        nombre: i.nombre,
+        rubro: i.rubro,
+        unidad: i.unidad,
+        cantidad: i.cantidad,
+        precioUnitario: i.precioUnitario,
+        grupoContable: i.grupoContable,
+        m2PorCaja: null,
+        requiereVerificacion: i.requiereVerificacion,
+      })) ?? [],
+  );
 
   // Alta de ítem manual
   const [manualAbierto, setManualAbierto] = useState(false);
@@ -143,10 +212,10 @@ export function PresupuestoForm() {
   const [manualPrecio, setManualPrecio] = useState(0);
   const [manualGrupo, setManualGrupo] = useState<GrupoContable>("materiales");
 
-  const [formaPago, setFormaPago] = useState("");
-  const [validez, setValidez] = useState("");
-  const [moneda, setMoneda] = useState("Pesos");
-  const [exclusiones, setExclusiones] = useState("");
+  const [formaPago, setFormaPago] = useState(prefill?.formaPago ?? "");
+  const [validez, setValidez] = useState(prefill?.validez ?? "");
+  const [moneda, setMoneda] = useState(prefill?.moneda ?? "Pesos");
+  const [exclusiones, setExclusiones] = useState(prefill?.exclusiones ?? "");
 
   const [dialogClienteRapido, setDialogClienteRapido] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -236,6 +305,28 @@ export function PresupuestoForm() {
     setItems((prev) => prev.filter((i) => i.key !== key));
   }
 
+  function actualizarPreciosDesdeCatalogo() {
+    if (!catalogo) return;
+    const catalogoPorId = new Map(catalogo.map((i) => [i.id, i]));
+    let cambios = 0;
+    setItems((prev) =>
+      prev.map((item) => {
+        if (!item.catalogoId) return item;
+        const catItem = catalogoPorId.get(item.catalogoId);
+        if (!catItem) return item;
+        const { precio } = precioEfectivo(
+          { moneda: catItem.moneda, precioFinalIva: catItem.precioFinalIva },
+          tcUsd,
+        );
+        if (precio === item.precioUnitario) return item;
+        cambios += 1;
+        return { ...item, precioUnitario: precio, precioAnterior: item.precioUnitario };
+      }),
+    );
+    if (cambios === 0) toast.info("Los precios ya están actualizados");
+    else toast.success(`${cambios} ítem(s) con precio actualizado`);
+  }
+
   const itemsConSubtotal = useMemo(
     () => items.map((i) => ({ ...i, subtotal: i.cantidad * i.precioUnitario })),
     [items],
@@ -271,8 +362,7 @@ export function PresupuestoForm() {
       grupoContableManual: i.catalogoId ? undefined : i.grupoContable,
     }));
 
-    setGuardando(true);
-    const res = await crearPresupuesto({
+    const datos = {
       clienteId: clienteSeleccionado.codigo,
       telefono,
       direccionObra,
@@ -290,22 +380,57 @@ export function PresupuestoForm() {
       moneda,
       exclusiones,
       items: datosItems,
-    });
-    setGuardando(false);
+    };
 
+    setGuardando(true);
+
+    if (modo === "editar" && presupuestoId) {
+      const res = await actualizarPresupuesto(presupuestoId, datos);
+      setGuardando(false);
+      if (!res.ok) {
+        setError(res.error);
+        return;
+      }
+      toast.success("Presupuesto actualizado");
+      router.push(`/presupuestos/${presupuestoId}`);
+      return;
+    }
+
+    if (modo === "duplicar" && obraCodigoDestino) {
+      const res = await crearVersionPresupuesto(obraCodigoDestino, datos);
+      setGuardando(false);
+      if (!res.ok) {
+        setError(res.error);
+        return;
+      }
+      toast.success(`Nueva versión creada: ${res.obraCodigo}`);
+      router.push(`/presupuestos/${res.presupuestoId}`);
+      return;
+    }
+
+    const res = await crearPresupuesto(datos);
+    setGuardando(false);
     if (!res.ok) {
       setError(res.error);
       return;
     }
-
     toast.success(`Presupuesto creado: ${res.obraCodigo} v1`);
-    router.push("/presupuestos");
+    router.push(`/presupuestos/${res.presupuestoId}`);
   }
+
+  const titulo =
+    modo === "editar"
+      ? "Editar presupuesto"
+      : modo === "duplicar"
+        ? obraCodigoDestino
+          ? "Duplicar — nueva versión"
+          : "Duplicar — obra nueva"
+        : "Nuevo presupuesto";
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 pb-12">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Nuevo presupuesto</h1>
+        <h1 className="text-xl font-semibold">{titulo}</h1>
         <Button type="submit" disabled={guardando}>
           {guardando ? "Guardando..." : "Guardar presupuesto"}
         </Button>
@@ -328,14 +453,16 @@ export function PresupuestoForm() {
                       {clienteSeleccionado.codigo}
                     </p>
                   </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setClienteSeleccionado(null)}
-                  >
-                    Cambiar
-                  </Button>
+                  {!clienteBloqueado && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setClienteSeleccionado(null)}
+                    >
+                      Cambiar
+                    </Button>
+                  )}
                 </div>
               ) : (
                 <div className="flex gap-2">
@@ -455,8 +582,13 @@ export function PresupuestoForm() {
       </Card>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="flex items-center justify-between">
           <CardTitle>Ítems</CardTitle>
+          {modo === "duplicar" && (
+            <Button type="button" variant="outline" size="sm" onClick={actualizarPreciosDesdeCatalogo}>
+              Actualizar precios desde catálogo
+            </Button>
+          )}
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex gap-2">
@@ -570,6 +702,11 @@ export function PresupuestoForm() {
                             </Badge>
                           )}
                           {excluido && <span className="ml-1 italic">no suma al total</span>}
+                          {item.precioAnterior !== undefined && (
+                            <Badge variant="secondary" className="ml-1">
+                              Precio actualizado (antes {fmtMoneda(item.precioAnterior)})
+                            </Badge>
+                          )}
                         </div>
                       </TableCell>
                       <TableCell>
@@ -707,4 +844,42 @@ export function PresupuestoForm() {
       />
     </form>
   );
+}
+
+function timestampAInputDate(ts: Timestamp): string {
+  return ts.toDate().toISOString().slice(0, 10);
+}
+
+/** Convierte un presupuesto ya persistido en el prefill que consume el form (editar o duplicar). */
+export function presupuestoAPrefill(p: Presupuesto): PresupuestoPrefill {
+  return {
+    clienteId: p.clienteId,
+    clienteNombre: p.clienteNombre,
+    telefono: p.telefono,
+    direccionObra: p.direccionObra,
+    tipoObra: p.tipoObra,
+    vendedor: p.vendedor,
+    fechaVisita: timestampAInputDate(p.fechaVisita as unknown as Timestamp),
+    fechaEmision: timestampAInputDate(p.fechaEmision as unknown as Timestamp),
+    m2Relevados: p.m2Relevados,
+    subpiso: p.subpiso,
+    nivelSubpiso: p.nivelSubpiso,
+    observacionesRiesgos: p.observacionesRiesgos,
+    modalidad: p.modalidad,
+    formaPago: p.formaPago,
+    validez: p.validez,
+    moneda: p.moneda,
+    exclusiones: p.exclusiones,
+    items: p.items.map((i) => ({
+      catalogoId: i.catalogoId,
+      codigo: i.codigo,
+      nombre: i.nombre,
+      rubro: i.rubro,
+      unidad: i.unidad,
+      cantidad: i.cantidad,
+      precioUnitario: i.precioUnitario,
+      grupoContable: i.grupoContable,
+      requiereVerificacion: i.requiereVerificacion,
+    })),
+  };
 }
