@@ -9,6 +9,7 @@
     "start": "next start",
     "lint": "eslint",
     "seed": "tsx scripts/seed.ts",
+    "import:catalogo": "tsx scripts/import/import-catalogo.ts",
     "test": "vitest run"
   },
   "dependencies": {
@@ -36,6 +37,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "concurrently": "^10.0.3",
+    "dotenv": "^17.2.1",
     "eslint": "^9",
     "eslint-config-next": "16.2.10",
     "firebase-tools": "^15.22.4",

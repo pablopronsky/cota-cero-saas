@@ -36,7 +36,11 @@ export async function obtenerUsuarioSesion(): Promise<UsuarioSesion | null> {
   if (!cookieSesion) return null;
 
   try {
-    const decoded = await adminAuth.verifySessionCookie(cookieSesion, true);
+    // Sin checkRevoked: ese flag agrega una llamada de red extra a Firebase
+    // en cada verificación (o sea, en cada navegación, porque cookies() hace
+    // dinámico este layout). Con 2-4 usuarios internos y cookies de 5 días,
+    // no vale el costo de latencia en cada pantalla.
+    const decoded = await adminAuth.verifySessionCookie(cookieSesion);
     return {
       uid: decoded.uid,
       email: decoded.email ?? "",

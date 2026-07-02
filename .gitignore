@@ -45,3 +45,6 @@ ui-debug.log
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# reportes de importación (datos reales, no van al repo)
+reporte-import-*.csv
