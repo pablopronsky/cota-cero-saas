@@ -10,6 +10,9 @@
     "lint": "eslint",
     "seed": "tsx scripts/seed.ts",
     "import:catalogo": "tsx scripts/import/import-catalogo.ts",
+    "import:clientes": "tsx scripts/import/import-clientes.ts",
+    "import:historial": "tsx scripts/import/import-historial.ts",
+    "import:movimientos": "tsx scripts/import/import-movimientos.ts",
     "reconciliar": "tsx scripts/reconciliar.ts",
     "test": "vitest run"
   },
