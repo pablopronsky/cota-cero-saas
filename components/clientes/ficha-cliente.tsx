@@ -18,9 +18,16 @@ export function FichaCliente({ codigo }: { codigo: string }) {
   const [cambiandoEstado, setCambiandoEstado] = useState(false);
 
   useEffect(() => {
-    return onSnapshot(doc(db, "clientes", codigo), (snap) => {
-      setCliente(snap.exists() ? (snap.data() as Cliente) : null);
-    });
+    return onSnapshot(
+      doc(db, "clientes", codigo),
+      (snap) => {
+        setCliente(snap.exists() ? (snap.data() as Cliente) : null);
+      },
+      (error) => {
+        // permission-denied esperado cuando el listener sigue activo al cerrar sesión.
+        if (error.code !== "permission-denied") console.error(error);
+      },
+    );
   }, [codigo]);
 
   if (cliente === undefined) {

@@ -32,9 +32,16 @@ export function ListadoClientes() {
 
   useEffect(() => {
     const q = query(collection(db, "clientes"), orderBy("nombre"));
-    return onSnapshot(q, (snap) => {
-      setClientes(snap.docs.map((d) => ({ codigo: d.id, ...(d.data() as Cliente) })));
-    });
+    return onSnapshot(
+      q,
+      (snap) => {
+        setClientes(snap.docs.map((d) => ({ codigo: d.id, ...(d.data() as Cliente) })));
+      },
+      (error) => {
+        // permission-denied esperado cuando el listener sigue activo al cerrar sesión.
+        if (error.code !== "permission-denied") console.error(error);
+      },
+    );
   }, []);
 
   const filtrados = useMemo(() => {
