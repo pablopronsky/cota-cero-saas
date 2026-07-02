@@ -284,7 +284,7 @@ export function CuentaCorrienteCliente({ clienteId }: { clienteId: string }) {
       </div>
 
       <ConfirmarPresupuestoDialog
-        key={dialogAbierto === "confirmar" ? "abierto" : "cerrado"}
+        key={`confirmar-${dialogAbierto === "confirmar" ? "abierto" : "cerrado"}`}
         open={dialogAbierto === "confirmar"}
         onOpenChange={(o) => setDialogAbierto(o ? "confirmar" : null)}
         presupuestos={presupuestosEmitidos}
@@ -296,13 +296,13 @@ export function CuentaCorrienteCliente({ clienteId }: { clienteId: string }) {
         presupuestos={presupuestos ?? []}
       />
       <AnularConfirmacionDialog
-        key={dialogAbierto === "anularConfirmacion" ? "abierto" : "cerrado"}
+        key={`anularConfirmacion-${dialogAbierto === "anularConfirmacion" ? "abierto" : "cerrado"}`}
         open={dialogAbierto === "anularConfirmacion"}
         onOpenChange={(o) => setDialogAbierto(o ? "anularConfirmacion" : null)}
         presupuestos={presupuestosConfirmados}
       />
       <AnularPagoDialog
-        key={dialogAbierto === "anularPago" ? "abierto" : "cerrado"}
+        key={`anularPago-${dialogAbierto === "anularPago" ? "abierto" : "cerrado"}`}
         open={dialogAbierto === "anularPago"}
         onOpenChange={(o) => setDialogAbierto(o ? "anularPago" : null)}
         pagos={pagosAnulables}
