@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { doc, onSnapshot, type Timestamp } from "firebase/firestore";
+import { toast } from "sonner";
 import { db } from "@/lib/firebase/client";
 import { puedeEditarse, puedeDuplicarse } from "@/lib/reglas/validaciones";
 import { gruposIncluidos } from "@/lib/reglas/totales";
@@ -57,6 +58,7 @@ export function DetallePresupuesto({ id }: { id: string }) {
   const router = useRouter();
   const [presupuesto, setPresupuesto] = useState<Presupuesto | null | undefined>(undefined);
   const [dialogDuplicar, setDialogDuplicar] = useState(false);
+  const [generandoPdf, setGenerandoPdf] = useState(false);
 
   useEffect(() => {
     return onSnapshot(
@@ -73,6 +75,24 @@ export function DetallePresupuesto({ id }: { id: string }) {
 
   const incluidos = gruposIncluidos(presupuesto.modalidad);
 
+  async function generarPdf() {
+    setGenerandoPdf(true);
+    try {
+      const res = await fetch(`/api/pdf/presupuesto/${id}`, { method: "POST" });
+      const datos = await res.json();
+      if (!res.ok || !datos.ok) {
+        toast.error(datos.error ?? "No se pudo generar el PDF");
+        return;
+      }
+      window.open(datos.url, "_blank");
+    } catch (err) {
+      console.error(err);
+      toast.error("No se pudo generar el PDF");
+    } finally {
+      setGenerandoPdf(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -88,6 +108,15 @@ export function DetallePresupuesto({ id }: { id: string }) {
         <div className="flex items-center gap-2">
           <Badge variant={ESTADO_VARIANT[presupuesto.estado]}>{presupuesto.estado}</Badge>
           {presupuesto.esLegado && <Badge variant="outline">Legado</Badge>}
+          {!presupuesto.esLegado && (
+            <Button variant="outline" onClick={generarPdf} disabled={generandoPdf}>
+              {generandoPdf
+                ? "Generando..."
+                : presupuesto.pdfPath
+                  ? "Descargar PDF"
+                  : "Generar PDF"}
+            </Button>
+          )}
           {!presupuesto.esLegado && puedeEditarse(presupuesto.estado) && (
             <Button variant="outline" asChild>
               <Link href={`/presupuestos/${id}/editar`}>Editar</Link>

@@ -368,6 +368,10 @@ export async function actualizarPresupuesto(
         ...camposPresupuesto(datos),
         items,
         ...totales,
+        // El PDF generado (si había) queda desactualizado: se limpia para
+        // que el detalle vuelva a ofrecer "Generar PDF" en vez de servir
+        // uno con datos viejos.
+        pdfPath: "",
         actualizadoEn: FieldValue.serverTimestamp(),
       });
     });
