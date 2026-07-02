@@ -233,23 +233,23 @@ export function DetallePresupuesto({ id }: { id: string }) {
           <CardTitle>Totales</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 gap-2 text-sm md:grid-cols-4">
+          <div className="grid grid-cols-2 gap-2 text-sm md:grid-cols-3">
             <div>
-              <p className="text-muted-foreground">Materiales</p>
-              <p className={!incluidos.includes("materiales") ? "text-muted-foreground" : ""}>
-                {fmtMoneda(presupuesto.subtotalMateriales)}
+              <p className="text-muted-foreground">Materiales + accesorios</p>
+              <p
+                className={
+                  !incluidos.includes("materiales") && !incluidos.includes("accesorios")
+                    ? "text-muted-foreground"
+                    : ""
+                }
+              >
+                {fmtMoneda(presupuesto.subtotalMateriales + presupuesto.subtotalAccesorios)}
               </p>
             </div>
             <div>
               <p className="text-muted-foreground">Mano de obra</p>
               <p className={!incluidos.includes("mano_obra") ? "text-muted-foreground" : ""}>
                 {fmtMoneda(presupuesto.subtotalManoObra)}
-              </p>
-            </div>
-            <div>
-              <p className="text-muted-foreground">Accesorios</p>
-              <p className={!incluidos.includes("accesorios") ? "text-muted-foreground" : ""}>
-                {fmtMoneda(presupuesto.subtotalAccesorios)}
               </p>
             </div>
             <div>

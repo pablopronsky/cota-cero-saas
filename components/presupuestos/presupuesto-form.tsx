@@ -429,12 +429,7 @@ export function PresupuestoForm({ modo = "crear", presupuestoId, obraCodigoDesti
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 pb-12">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">{titulo}</h1>
-        <Button type="submit" disabled={guardando}>
-          {guardando ? "Guardando..." : "Guardar presupuesto"}
-        </Button>
-      </div>
+      <h1 className="text-xl font-semibold">{titulo}</h1>
       {error && <p className="text-sm text-destructive">{error}</p>}
 
       <Card>
@@ -771,23 +766,23 @@ export function PresupuestoForm({ modo = "crear", presupuestoId, obraCodigoDesti
           <CardTitle>Totales</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 gap-2 text-sm md:grid-cols-4">
+          <div className="grid grid-cols-2 gap-2 text-sm md:grid-cols-3">
             <div>
-              <p className="text-muted-foreground">Materiales</p>
-              <p className={!incluidos.includes("materiales") ? "text-muted-foreground" : ""}>
-                {fmtMoneda(totales.subtotalMateriales)}
+              <p className="text-muted-foreground">Materiales + accesorios</p>
+              <p
+                className={
+                  !incluidos.includes("materiales") && !incluidos.includes("accesorios")
+                    ? "text-muted-foreground"
+                    : ""
+                }
+              >
+                {fmtMoneda(totales.subtotalMateriales + totales.subtotalAccesorios)}
               </p>
             </div>
             <div>
               <p className="text-muted-foreground">Mano de obra</p>
               <p className={!incluidos.includes("mano_obra") ? "text-muted-foreground" : ""}>
                 {fmtMoneda(totales.subtotalManoObra)}
-              </p>
-            </div>
-            <div>
-              <p className="text-muted-foreground">Accesorios</p>
-              <p className={!incluidos.includes("accesorios") ? "text-muted-foreground" : ""}>
-                {fmtMoneda(totales.subtotalAccesorios)}
               </p>
             </div>
             <div>
@@ -833,6 +828,12 @@ export function PresupuestoForm({ modo = "crear", presupuestoId, obraCodigoDesti
           </div>
         </CardContent>
       </Card>
+
+      <div className="flex justify-end">
+        <Button type="submit" disabled={guardando}>
+          {guardando ? "Guardando..." : "Guardar presupuesto"}
+        </Button>
+      </div>
 
       <ClienteAltaRapidaDialog
         open={dialogClienteRapido}
