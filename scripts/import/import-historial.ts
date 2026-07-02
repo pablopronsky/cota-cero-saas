@@ -64,12 +64,12 @@ type CampoFila =
   | "estado";
 
 const ALIASES: Record<CampoFila, string[]> = {
-  fechaHora: ["fecha hora", "fecha"],
+  fechaHora: ["fecha hora", "fecha y hora", "fecha"],
   codigoObra: ["codigo obra", "codigo"],
   clienteNombre: ["cliente nombre", "cliente"],
   total: ["total"],
-  version: ["version"],
-  linkPdf: ["link pdf", "link", "pdf"],
+  version: ["version", "version pdf"],
+  linkPdf: ["link pdf", "link drive", "link", "pdf"],
   clienteId: ["cliente id"],
   estado: ["estado"],
 };
@@ -156,7 +156,7 @@ async function main() {
       continue;
     }
 
-    const version = Number.parseInt(fila.version, 10);
+    const version = Number.parseInt(fila.version.trim().replace(/^v/i, ""), 10);
     if (!Number.isFinite(version) || version <= 0) {
       reporte.push({
         codigoObra: fila.codigoObra,

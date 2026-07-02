@@ -184,10 +184,25 @@ export type ResolucionCliente =
   | { id: string; nombre: string; advertencia: string }
   | { error: string };
 
+/** Compara dos nombres de forma laxa: normalizados, ¿comparten al menos una palabra o uno incluye al otro? */
+function nombresCompatibles(a: string, b: string): boolean {
+  const na = normalizar(a);
+  const nb = normalizar(b);
+  if (!na || !nb) return true;
+  if (na.includes(nb) || nb.includes(na)) return true;
+  const tokensA = new Set(na.split(/\s+/).filter((t) => t.length > 2));
+  const tokensB = nb.split(/\s+/).filter((t) => t.length > 2);
+  return tokensB.some((t) => tokensA.has(t));
+}
+
 /**
  * Resuelve un cliente por ID (fuente primaria) y, si no existe, por nombre
  * normalizado. Nunca inventa: si no hay match único, devuelve error para
- * que la fila vaya al reporte y la resuelva Pablo.
+ * que la fila vaya al reporte y la resuelva Pablo. Si el ID matchea pero el
+ * nombre de la fila no se parece en nada al nombre del cliente encontrado
+ * (posible cliente_id mal cargado en el legado), tampoco confía a ciegas:
+ * lo reporta como conflicto en vez de asociar la fila a la persona
+ * equivocada.
  */
 export function resolverCliente(
   indice: IndiceClientes,
@@ -195,7 +210,13 @@ export function resolverCliente(
   clienteNombre: string,
 ): ResolucionCliente {
   if (clienteId && indice.porId.has(clienteId)) {
-    return { id: clienteId, nombre: indice.porId.get(clienteId)!.nombre, advertencia: "" };
+    const encontrado = indice.porId.get(clienteId)!;
+    if (!nombresCompatibles(clienteNombre, encontrado.nombre)) {
+      return {
+        error: `cliente_id "${clienteId}" existe pero pertenece a "${encontrado.nombre}", no a "${clienteNombre}" (posible cliente_id mal cargado en el legado)`,
+      };
+    }
+    return { id: clienteId, nombre: encontrado.nombre, advertencia: "" };
   }
   const nombreNormalizado = normalizar(clienteNombre);
   const candidatos = indice.porNombreNormalizado.get(nombreNormalizado) ?? [];
