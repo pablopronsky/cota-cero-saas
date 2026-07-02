@@ -1,7 +1,10 @@
 import { cert, getApps, initializeApp, type App } from "firebase-admin/app";
-import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
-import { getStorage } from "firebase-admin/storage";
+
+// Nota: Auth (getAuth) y Storage (getStorage) del admin SDK se agregan en sus
+// fases correspondientes (Auth en Fase 3, Storage en Fase 7). El modulo
+// firebase-admin/auth arrastra jwks-rsa -> jose (ESM-only), que rompe en las
+// funciones serverless de Netlify; se resuelve cuando esas fases lo necesiten.
 
 function buildAdminApp(): App {
   if (getApps().length) return getApps()[0];
@@ -33,5 +36,3 @@ function buildAdminApp(): App {
 const adminApp = buildAdminApp();
 
 export const adminDb = getFirestore(adminApp);
-export const adminAuth = getAuth(adminApp);
-export const adminStorage = getStorage(adminApp);
