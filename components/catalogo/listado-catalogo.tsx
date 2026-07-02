@@ -135,6 +135,7 @@ export function ListadoCatalogo() {
               <TableHead>Código</TableHead>
               <TableHead>Nombre</TableHead>
               <TableHead>Rubro</TableHead>
+              <TableHead>Proveedor</TableHead>
               <TableHead>Grupo contable</TableHead>
               <TableHead className="text-right">Precio final</TableHead>
               <TableHead>Estado</TableHead>
@@ -144,14 +145,14 @@ export function ListadoCatalogo() {
           <TableBody>
             {items === null && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground">
+                <TableCell colSpan={8} className="text-center text-muted-foreground">
                   Cargando...
                 </TableCell>
               </TableRow>
             )}
             {items !== null && filtrados.length === 0 && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground">
+                <TableCell colSpan={8} className="text-center text-muted-foreground">
                   Sin resultados.
                 </TableCell>
               </TableRow>
@@ -170,6 +171,7 @@ export function ListadoCatalogo() {
                   )}
                 </TableCell>
                 <TableCell>{item.rubro}</TableCell>
+                <TableCell>{item.proveedor || "—"}</TableCell>
                 <TableCell className="capitalize">{item.grupoContable.replace("_", " ")}</TableCell>
                 <TableCell className="text-right">
                   {item.moneda === "Dolar" ? "US$ " : "$ "}

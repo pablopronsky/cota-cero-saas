@@ -25,6 +25,7 @@ const VACIO: DatosItemCatalogo = {
   nombre: "",
   unidad: "",
   especificacion: "",
+  proveedor: "",
   precioLista: 0,
   precioFinalIva: 0,
   moneda: "Pesos",
@@ -44,7 +45,9 @@ export function ItemFormDialog({ open, onOpenChange, id, datosIniciales, onGuard
   const [error, setError] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
 
-  function campoTexto(nombre: "codigo" | "rubro" | "nombre" | "unidad" | "especificacion") {
+  function campoTexto(
+    nombre: "codigo" | "rubro" | "nombre" | "unidad" | "especificacion" | "proveedor",
+  ) {
     return {
       value: datos[nombre] ?? "",
       onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
@@ -117,6 +120,10 @@ export function ItemFormDialog({ open, onOpenChange, id, datosIniciales, onGuard
             <div className="space-y-2">
               <Label htmlFor="unidad">Unidad *</Label>
               <Input id="unidad" required {...campoTexto("unidad")} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="proveedor">Proveedor</Label>
+              <Input id="proveedor" {...campoTexto("proveedor")} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="moneda">Moneda</Label>

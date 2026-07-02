@@ -54,6 +54,7 @@ interface FilaCsv {
   precioFinalIva: number;
   estado: string;
   especificacion: string;
+  proveedor: string;
 }
 
 /** Detecta si el CSV usa ";" (export típico de Excel/Tienda Nube en es-AR) o "," como separador. */
@@ -138,7 +139,11 @@ const ALIAS_ENCABEZADO: Record<keyof FilaCsv, string[]> = {
   precioFinalIva: ["precio final iva", "precio final"],
   estado: ["estado"],
   especificacion: ["especificacion", "medidas", "descripcion"],
+  proveedor: ["proveedor"],
 };
+
+/** Columnas que no todos los exports traen (ej. la hoja PRECIOS documentada no tiene proveedor). */
+const CAMPOS_OPCIONALES: (keyof FilaCsv)[] = ["proveedor"];
 
 function leerFilas(rutaCsv: string): FilaCsv[] {
   const contenido = readFileSync(rutaCsv, "utf-8").replace(/^﻿/, "");
@@ -159,7 +164,9 @@ function leerFilas(rutaCsv: string): FilaCsv[] {
     }
   }
 
-  const faltantes = (Object.keys(idx) as (keyof FilaCsv)[]).filter((campo) => idx[campo] === -1);
+  const faltantes = (Object.keys(idx) as (keyof FilaCsv)[]).filter(
+    (campo) => idx[campo] === -1 && !CAMPOS_OPCIONALES.includes(campo),
+  );
   if (faltantes.length > 0) {
     throw new Error(`No se encontraron columnas para: ${faltantes.join(", ")}`);
   }
@@ -172,6 +179,7 @@ function leerFilas(rutaCsv: string): FilaCsv[] {
     precioLista: numero(fila[idx.precioLista] ?? ""),
     precioFinalIva: numero(fila[idx.precioFinalIva] ?? ""),
     estado: (fila[idx.estado] ?? "").trim(),
+    proveedor: idx.proveedor === -1 ? "" : (fila[idx.proveedor] ?? "").trim(),
     especificacion: (fila[idx.especificacion] ?? "").trim(),
   }));
 }
@@ -257,6 +265,7 @@ async function main() {
       nombre: fila.nombre,
       unidad: fila.unidad,
       especificacion: fila.especificacion,
+      proveedor: fila.proveedor,
       precioLista: fila.precioLista,
       precioFinalIva: fila.precioFinalIva,
       // Todo se vende en pesos: la moneda del proveedor (si la hay en el

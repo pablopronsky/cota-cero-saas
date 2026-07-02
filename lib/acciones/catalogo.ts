@@ -14,6 +14,7 @@ export interface DatosItemCatalogo {
   nombre: string;
   unidad: string;
   especificacion?: string;
+  proveedor?: string;
   precioLista: number;
   precioFinalIva: number;
   moneda: Moneda;
@@ -64,6 +65,7 @@ function camposDerivados(datos: DatosItemCatalogo) {
     nombre: datos.nombre.trim(),
     unidad: datos.unidad.trim(),
     especificacion,
+    proveedor: datos.proveedor?.trim() ?? "",
     precioLista: datos.precioLista,
     precioFinalIva: datos.precioFinalIva,
     moneda: datos.moneda,

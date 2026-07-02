@@ -44,6 +44,8 @@ export interface ItemCatalogo {
   nombre: string;
   unidad: string;
   especificacion: string;
+  /** Preparado para un futuro módulo de proveedores/compras. Hoy es solo texto libre. */
+  proveedor: string;
   precioLista: number;
   precioFinalIva: number;
   moneda: Moneda;
