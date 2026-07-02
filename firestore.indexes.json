@@ -1,4 +1,29 @@
 {
-  "indexes": [],
+  "indexes": [
+    {
+      "collectionGroup": "movimientos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "clienteId", "order": "ASCENDING" },
+        { "fieldPath": "fechaHora", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "presupuestos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "clienteId", "order": "ASCENDING" },
+        { "fieldPath": "creadoEn", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "presupuestos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "obraCodigo", "order": "ASCENDING" },
+        { "fieldPath": "version", "order": "ASCENDING" }
+      ]
+    }
+  ],
   "fieldOverrides": []
 }
