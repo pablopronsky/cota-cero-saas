@@ -10,9 +10,23 @@
  * (preservando año, número y versión máxima) y por cada fila un
  * `presupuestos` con `esLegado = true`, `items = []`, sin re-calcular nada.
  *
- * Ninguna fila con cliente no resuelto, versión duplicada, fecha/total/
- * estado inválido, o conflicto con un doc ya existente en destino, se
- * importa en silencio: queda en el reporte para resolución manual.
+ * Dos casos conocidos del export real de COTA CERO se manejan de forma
+ * explícita (por decisión de Pablo, no es una corrección silenciosa):
+ *
+ * 1. Filas de la época anterior a la numeración COTA-AAAA-NNNN, con
+ *    codigo_obra vacío o un número suelto (ej. "9"): se agrupan por
+ *    (codigo_obra crudo + cliente resuelto) como versiones sucesivas de UNA
+ *    obra, y se les asigna un código NUEVO (nunca se reutiliza el número
+ *    suelto como si fuera el NNNN final, para no chocar con códigos
+ *    COTA-AAAA-NNNN reales que ya existan con ese mismo número).
+ * 2. Filas que comparten el mismo codigo_obra+version porque el presupuesto
+ *    se generó mal y se rehizo (el PDF se regeneró varias veces): se
+ *    conserva la más reciente por fecha_hora y las anteriores quedan
+ *    registradas en el reporte como regeneraciones descartadas (no como
+ *    anomalía a resolver).
+ *
+ * Cliente no resuelto, fecha/total/estado inválido, o conflicto con un doc
+ * ya existente en destino, se siguen reportando sin importar en silencio.
  *
  * Uso:
  *   npm run import:historial -- <archivo.csv>                  → dry-run contra emulador
@@ -118,6 +132,8 @@ const ESTADOS_VALIDOS: EstadoPresupuesto[] = ["Emitido", "Confirmado", "Anulado"
 
 interface FilaValida {
   codigoObra: string;
+  codigoObraCrudo: string;
+  requiereCodigoNuevo: boolean;
   anio: number;
   numero: number;
   version: number;
@@ -138,23 +154,23 @@ async function main() {
   const db = getFirestore(app);
   const indiceClientes = await cargarClientes(db);
 
+  // Se carga toda la colección de obras una sola vez: sirve tanto para el
+  // chequeo de colisión como para saber a partir de qué número seguir al
+  // asignar códigos nuevos a las filas sin codigo_obra válido.
+  const obrasExistentes = new Map<string, Obra>();
+  const maxNumeroPorAnio = new Map<number, number>();
+  const snapObras = await db.collection("obras").get();
+  for (const doc of snapObras.docs) {
+    const data = doc.data() as Obra;
+    obrasExistentes.set(doc.id, data);
+    maxNumeroPorAnio.set(data.anio, Math.max(maxNumeroPorAnio.get(data.anio) ?? 0, data.numero));
+  }
+
   const reporte: FilaReporte[] = [];
   const validas: FilaValida[] = [];
 
   for (const fila of filas) {
     const advertencias: string[] = [];
-
-    const matchCodigo = fila.codigoObra.match(CODIGO_OBRA);
-    if (!matchCodigo) {
-      reporte.push({
-        codigoObra: fila.codigoObra,
-        version: fila.version,
-        clienteNombreCsv: fila.clienteNombre,
-        accion: "omitido",
-        motivo: `codigo_obra no tiene el formato COTA-AAAA-NNNN: "${fila.codigoObra}"`,
-      });
-      continue;
-    }
 
     const version = Number.parseInt(fila.version.trim().replace(/^v/i, ""), 10);
     if (!Number.isFinite(version) || version <= 0) {
@@ -168,17 +184,29 @@ async function main() {
       continue;
     }
 
+    // Estado vacío = no se guardó en el Excel (confirmado por Pablo), no
+    // "estado desconocido": se asume 'Emitido' (como mínimo el presupuesto
+    // se generó) y queda visible en advertencias para revisión puntual.
+    // Un valor NO vacío que no matchea ninguno de los 4 válidos sí sigue
+    // bloqueando, porque ahí hay un dato real y raro que hay que mirar.
     const estadoNormalizado = fila.estado.trim().toLowerCase();
-    const estado = ESTADOS_VALIDOS.find((e) => e.toLowerCase() === estadoNormalizado);
-    if (!estado) {
-      reporte.push({
-        codigoObra: fila.codigoObra,
-        version: fila.version,
-        clienteNombreCsv: fila.clienteNombre,
-        accion: "omitido",
-        motivo: `estado desconocido: "${fila.estado}"`,
-      });
-      continue;
+    let estado: EstadoPresupuesto;
+    if (!estadoNormalizado) {
+      estado = "Emitido";
+      advertencias.push('estado vacío en el legado; se asume "Emitido" por default');
+    } else {
+      const encontrado = ESTADOS_VALIDOS.find((e) => e.toLowerCase() === estadoNormalizado);
+      if (!encontrado) {
+        reporte.push({
+          codigoObra: fila.codigoObra,
+          version: fila.version,
+          clienteNombreCsv: fila.clienteNombre,
+          accion: "omitido",
+          motivo: `estado desconocido: "${fila.estado}"`,
+        });
+        continue;
+      }
+      estado = encontrado;
     }
 
     if (!fila.total.trim()) {
@@ -219,10 +247,31 @@ async function main() {
     if (resolucion.advertencia) advertencias.push(resolucion.advertencia);
     if (!fila.linkPdf) advertencias.push("sin link_pdf");
 
+    const matchCodigo = fila.codigoObra.match(CODIGO_OBRA);
+    let codigoObra = "";
+    let anio: number;
+    let numeroObra: number;
+    let requiereCodigoNuevo = false;
+    if (matchCodigo) {
+      codigoObra = fila.codigoObra.toUpperCase();
+      anio = Number(matchCodigo[1]);
+      numeroObra = Number(matchCodigo[2]);
+      maxNumeroPorAnio.set(anio, Math.max(maxNumeroPorAnio.get(anio) ?? 0, numeroObra));
+    } else {
+      requiereCodigoNuevo = true;
+      anio = fechaHora.getFullYear();
+      numeroObra = -1;
+      advertencias.push(
+        `codigo_obra vacío/no válido en el legado ("${fila.codigoObra}") — se le asigna un código nuevo`,
+      );
+    }
+
     validas.push({
-      codigoObra: fila.codigoObra.toUpperCase(),
-      anio: Number(matchCodigo[1]),
-      numero: Number(matchCodigo[2]),
+      codigoObra,
+      codigoObraCrudo: fila.codigoObra.trim(),
+      requiereCodigoNuevo,
+      anio,
+      numero: numeroObra,
       version,
       clienteId: resolucion.id,
       clienteNombre: resolucion.nombre,
@@ -235,8 +284,41 @@ async function main() {
     });
   }
 
-  // Version duplicada dentro del mismo codigo_obra: no se puede decidir cuál
-  // vale, así que se excluyen todas las filas en conflicto.
+  // Filas de la época sin numeración COTA-AAAA-NNNN: se agrupan por
+  // (codigo_obra crudo + cliente resuelto) como versiones sucesivas de UNA
+  // obra que nunca tuvo código formal, y se les asigna un código nuevo
+  // (nunca el número suelto original, que puede chocar con un código real).
+  const gruposCodigoNuevo = new Map<string, FilaValida[]>();
+  for (const v of validas) {
+    if (!v.requiereCodigoNuevo) continue;
+    const clave = `${v.codigoObraCrudo}#${v.clienteId}`;
+    const lista = gruposCodigoNuevo.get(clave) ?? [];
+    lista.push(v);
+    gruposCodigoNuevo.set(clave, lista);
+  }
+  const gruposOrdenados = [...gruposCodigoNuevo.values()].sort(
+    (a, b) => Math.min(...a.map((f) => f.fechaHora.getTime())) - Math.min(...b.map((f) => f.fechaHora.getTime())),
+  );
+  for (const grupo of gruposOrdenados) {
+    grupo.sort((a, b) => a.fechaHora.getTime() - b.fechaHora.getTime());
+    const anio = grupo[0].fechaHora.getFullYear();
+    const siguiente = (maxNumeroPorAnio.get(anio) ?? 0) + 1;
+    maxNumeroPorAnio.set(anio, siguiente);
+    const codigoNuevo = `COTA-${anio}-${String(siguiente).padStart(4, "0")}`;
+    grupo.forEach((f, i) => {
+      f.codigoObra = codigoNuevo;
+      f.numero = siguiente;
+      f.version = i + 1;
+      f.advertencias.push(
+        `código asignado automáticamente: ${codigoNuevo} (codigo_obra original="${f.codigoObraCrudo}"; versión renumerada a ${i + 1} de ${grupo.length} para este grupo del mismo cliente)`,
+      );
+    });
+  }
+
+  // Regeneraciones repetidas del mismo presupuesto (mismo codigo_obra +
+  // version porque el PDF se armó mal y se rehizo): se conserva la más
+  // reciente por fecha_hora; las anteriores no son una anomalía a resolver,
+  // quedan solo registradas en el reporte.
   const porObraVersion = new Map<string, FilaValida[]>();
   for (const v of validas) {
     const clave = `${v.codigoObra}#${v.version}`;
@@ -244,19 +326,23 @@ async function main() {
     lista.push(v);
     porObraVersion.set(clave, lista);
   }
-  const clavesDuplicadas = new Set(
-    [...porObraVersion.entries()].filter(([, l]) => l.length > 1).map(([k]) => k),
-  );
 
-  const aProcesar = validas.filter((v) => !clavesDuplicadas.has(`${v.codigoObra}#${v.version}`));
-  for (const clave of clavesDuplicadas) {
-    for (const v of porObraVersion.get(clave)!) {
+  const aProcesar: FilaValida[] = [];
+  for (const grupo of porObraVersion.values()) {
+    if (grupo.length === 1) {
+      aProcesar.push(grupo[0]);
+      continue;
+    }
+    const ordenado = [...grupo].sort((a, b) => b.fechaHora.getTime() - a.fechaHora.getTime());
+    const [ganador, ...resto] = ordenado;
+    aProcesar.push(ganador);
+    for (const v of resto) {
       reporte.push({
         codigoObra: v.codigoObra,
         version: String(v.version),
         clienteNombreCsv: v.clienteNombre,
         accion: "omitido",
-        motivo: `version duplicada: hay más de una fila con codigo_obra=${v.codigoObra} y version=${v.version}`,
+        motivo: `regeneración anterior del mismo presupuesto (se conserva la más reciente, del ${ganador.fechaHora.toISOString()})`,
       });
     }
   }
@@ -268,16 +354,6 @@ async function main() {
     const lista = porObra.get(v.codigoObra) ?? [];
     lista.push(v);
     porObra.set(v.codigoObra, lista);
-  }
-
-  const obrasExistentes = new Map<string, Obra>();
-  const idsObra = [...porObra.keys()];
-  for (let i = 0; i < idsObra.length; i += 300) {
-    const lote = idsObra.slice(i, i + 300);
-    const snaps = await db.getAll(...lote.map((id) => db.collection("obras").doc(id)));
-    for (const snap of snaps) {
-      if (snap.exists) obrasExistentes.set(snap.id, snap.data() as Obra);
-    }
   }
 
   const obrasAImportar: Array<{ id: string; data: Obra }> = [];
@@ -368,8 +444,6 @@ async function main() {
 
   // Idempotencia: no duplicar presupuestos si ya se importaron antes
   // (presupuestos usa autoId, así que sin este chequeo un re-run duplicaría).
-  // Se carga una sola vez toda la colección de legados existentes en vez de
-  // consultar fila por fila.
   const legadosExistentes = new Map<string, Presupuesto>();
   const snapLegados = await db.collection("presupuestos").where("esLegado", "==", true).get();
   for (const doc of snapLegados.docs) {
@@ -412,7 +486,7 @@ async function main() {
   console.log(`Filas leídas: ${filas.length}`);
   console.log(`Obras a crear/actualizar: ${obrasAImportar.length}`);
   console.log(`Presupuestos a importar: ${aEscribir.length}`);
-  console.log(`Omitidos (requieren resolución): ${omitidos}`);
+  console.log(`Omitidos (requieren resolución o regeneración descartada): ${omitidos}`);
   console.log(`Reporte: ${rutaReporte}`);
 
   if (!ejecutar) {
