@@ -255,9 +255,32 @@ async function seed() {
     },
   });
 
+  // --- Movimiento que respalda el saldo≠0 de CLI-0002 (si no, reconciliar.ts
+  // siempre marcaría una diferencia falsa: el saldo denormalizado es sum(debe)-sum(haber)). ---
+  batch.set(db.collection("movimientos").doc(), {
+    codigo: "MOV-000001",
+    fechaHora: ahora,
+    clienteId: "CLI-0002",
+    clienteNombre: "María Gómez",
+    tipo: "AJUSTE" as const,
+    presupuestoId: null,
+    codigoObra: "",
+    versionPresupuesto: 0,
+    concepto: "Ajuste manual",
+    debe: 15000,
+    haber: 0,
+    medioPago: "",
+    referencia: "",
+    motivo: "Saldo inicial de prueba (seed)",
+    movAnuladoId: null,
+    reciboPath: "",
+    notas: "",
+    creadoPor: "seed-script",
+  });
+
   // --- Contadores consistentes con lo sembrado ---
   batch.set(db.collection("contadores").doc("clientes"), { ultimo: 3 });
-  batch.set(db.collection("contadores").doc("movimientos"), { ultimo: 0 });
+  batch.set(db.collection("contadores").doc("movimientos"), { ultimo: 1 });
   batch.set(db.collection("contadores").doc("obras-2026"), { ultimo: 1 });
 
   // --- Obra con 2 versiones de presupuesto (misma obra, cliente CLI-0001) ---

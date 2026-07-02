@@ -6,8 +6,9 @@ import { useRouter } from "next/navigation";
 import { doc, onSnapshot, type Timestamp } from "firebase/firestore";
 import { toast } from "sonner";
 import { db } from "@/lib/firebase/client";
-import { puedeEditarse, puedeDuplicarse } from "@/lib/reglas/validaciones";
+import { puedeEditarse, puedeDuplicarse, puedeConfirmarse, puedeAnularse } from "@/lib/reglas/validaciones";
 import { gruposIncluidos } from "@/lib/reglas/totales";
+import { confirmarPresupuesto, anularConfirmacion } from "@/lib/acciones/cuentaCorriente";
 import type { EstadoPresupuesto, GrupoContable, ModalidadPresupuesto, Presupuesto } from "@/lib/tipos";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -58,7 +60,9 @@ export function DetallePresupuesto({ id }: { id: string }) {
   const router = useRouter();
   const [presupuesto, setPresupuesto] = useState<Presupuesto | null | undefined>(undefined);
   const [dialogDuplicar, setDialogDuplicar] = useState(false);
+  const [dialogAnular, setDialogAnular] = useState(false);
   const [generandoPdf, setGenerandoPdf] = useState(false);
+  const [confirmando, setConfirmando] = useState(false);
 
   useEffect(() => {
     return onSnapshot(
@@ -74,6 +78,17 @@ export function DetallePresupuesto({ id }: { id: string }) {
   if (presupuesto === null) return <p className="text-muted-foreground">Presupuesto no encontrado.</p>;
 
   const incluidos = gruposIncluidos(presupuesto.modalidad);
+
+  async function confirmar() {
+    setConfirmando(true);
+    const res = await confirmarPresupuesto(id);
+    setConfirmando(false);
+    if (!res.ok) {
+      toast.error(res.error);
+      return;
+    }
+    toast.success("Presupuesto confirmado");
+  }
 
   async function generarPdf() {
     setGenerandoPdf(true);
@@ -120,6 +135,16 @@ export function DetallePresupuesto({ id }: { id: string }) {
           {!presupuesto.esLegado && puedeEditarse(presupuesto.estado) && (
             <Button variant="outline" asChild>
               <Link href={`/presupuestos/${id}/editar`}>Editar</Link>
+            </Button>
+          )}
+          {!presupuesto.esLegado && puedeConfirmarse(presupuesto.estado) && (
+            <Button onClick={confirmar} disabled={confirmando}>
+              {confirmando ? "Confirmando..." : "Confirmar"}
+            </Button>
+          )}
+          {!presupuesto.esLegado && puedeAnularse(presupuesto.estado) && (
+            <Button variant="destructive" onClick={() => setDialogAnular(true)}>
+              Anular
             </Button>
           )}
           {puedeDuplicarse(presupuesto.estado) && (
@@ -285,6 +310,8 @@ export function DetallePresupuesto({ id }: { id: string }) {
           router.push(`/presupuestos/nuevo?${params.toString()}`);
         }}
       />
+
+      <AnularDialog open={dialogAnular} onOpenChange={setDialogAnular} presupuestoId={id} />
     </div>
   );
 }
@@ -295,6 +322,79 @@ function Campo({ label, valor }: { label: string; valor: string }) {
       <p className="text-muted-foreground">{label}</p>
       <p>{valor || "—"}</p>
     </div>
+  );
+}
+
+function AnularDialog({
+  open,
+  onOpenChange,
+  presupuestoId,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  presupuestoId: string;
+}) {
+  const [motivo, setMotivo] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [anulando, setAnulando] = useState(false);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setAnulando(true);
+    setError(null);
+    const res = await anularConfirmacion(presupuestoId, motivo);
+    setAnulando(false);
+    if (!res.ok) {
+      setError(res.error);
+      return;
+    }
+    toast.success("Confirmación anulada");
+    setMotivo("");
+    onOpenChange(false);
+  }
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        onOpenChange(o);
+        if (!o) {
+          setMotivo("");
+          setError(null);
+        }
+      }}
+    >
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Anular confirmación</DialogTitle>
+          <DialogDescription>
+            El motivo es obligatorio. El presupuesto pasa a Anulado y se revierte el saldo.
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="motivo-anular">Motivo *</Label>
+            <textarea
+              id="motivo-anular"
+              className="w-full rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+              rows={2}
+              required
+              value={motivo}
+              onChange={(e) => setMotivo(e.target.value)}
+            />
+          </div>
+          {error && <p className="text-sm text-destructive">{error}</p>}
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Cancelar
+            </Button>
+            <Button type="submit" variant="destructive" disabled={anulando}>
+              {anulando ? "Anulando..." : "Anular"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
 

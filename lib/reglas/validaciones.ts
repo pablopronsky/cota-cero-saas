@@ -20,3 +20,8 @@ export function puedeDuplicarse(_estado: EstadoPresupuesto): boolean {
 export function puedeConfirmarse(estado: EstadoPresupuesto): boolean {
   return estado === "Emitido";
 }
+
+/** R8 - Solo se puede anular la confirmación de un presupuesto 'Confirmado'. */
+export function puedeAnularse(estado: EstadoPresupuesto): boolean {
+  return estado === "Confirmado";
+}

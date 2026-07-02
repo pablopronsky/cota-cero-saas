@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  puedeAnularse,
   puedeConfirmarse,
   puedeDuplicarse,
   puedeEditarse,
@@ -47,5 +48,14 @@ describe("puedeConfirmarse", () => {
   it("solo 'Emitido' se puede confirmar", () => {
     expect(puedeConfirmarse("Emitido")).toBe(true);
     expect(puedeConfirmarse("Confirmado")).toBe(false);
+  });
+});
+
+describe("puedeAnularse", () => {
+  it("solo 'Confirmado' se puede anular", () => {
+    expect(puedeAnularse("Confirmado")).toBe(true);
+    expect(puedeAnularse("Emitido")).toBe(false);
+    expect(puedeAnularse("Anulado")).toBe(false);
+    expect(puedeAnularse("Superado")).toBe(false);
   });
 });

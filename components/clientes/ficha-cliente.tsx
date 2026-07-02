@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ClienteFormDialog } from "@/components/clientes/cliente-form-dialog";
 import { HistorialPresupuestosCliente } from "@/components/presupuestos/historial-cliente";
+import { CuentaCorrienteCliente } from "@/components/cuenta-corriente/cuenta-corriente-cliente";
 
 export function FichaCliente({ codigo }: { codigo: string }) {
   const [cliente, setCliente] = useState<Cliente | null | undefined>(undefined);
@@ -122,7 +123,7 @@ export function FichaCliente({ codigo }: { codigo: string }) {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
         <Card>
           <CardHeader>
             <CardTitle>Presupuestos</CardTitle>
@@ -135,8 +136,8 @@ export function FichaCliente({ codigo }: { codigo: string }) {
           <CardHeader>
             <CardTitle>Cuenta corriente</CardTitle>
           </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
-            Próximamente (Fase 8).
+          <CardContent>
+            <CuentaCorrienteCliente clienteId={codigo} />
           </CardContent>
         </Card>
       </div>
