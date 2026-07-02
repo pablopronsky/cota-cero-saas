@@ -13,6 +13,13 @@ export interface Totales {
   total: number;
 }
 
+/** R3 - Grupos contables que suman al total bajo una modalidad dada. */
+export function gruposIncluidos(
+  modalidad: ModalidadPresupuesto
+): Array<ItemPresupuesto["grupoContable"]> {
+  return GRUPOS_INCLUIDOS[modalidad];
+}
+
 /**
  * R3 - Subtotales por grupo sobre TODOS los items (incluidos los excluidos
  * por la modalidad), y total sumando solo los subtotales de los grupos que
