@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { NativeSelect } from "@/components/ui/native-select";
 import {
   Dialog,
   DialogContent,
@@ -92,7 +93,7 @@ export function ItemFormDialog({ open, onOpenChange, id, datosIniciales, onGuard
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{id ? "Editar ítem" : "Nuevo ítem"}</DialogTitle>
           <DialogDescription>
@@ -100,7 +101,7 @@ export function ItemFormDialog({ open, onOpenChange, id, datosIniciales, onGuard
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="codigo">Código *</Label>
               <Input id="codigo" required {...campoTexto("codigo")} />
@@ -109,11 +110,11 @@ export function ItemFormDialog({ open, onOpenChange, id, datosIniciales, onGuard
               <Label htmlFor="rubro">Rubro *</Label>
               <Input id="rubro" required {...campoTexto("rubro")} />
             </div>
-            <div className="col-span-2 space-y-2">
+            <div className="space-y-2 sm:col-span-2">
               <Label htmlFor="nombre">Nombre *</Label>
               <Input id="nombre" required {...campoTexto("nombre")} />
             </div>
-            <div className="col-span-2 space-y-2">
+            <div className="space-y-2 sm:col-span-2">
               <Label htmlFor="especificacion">Especificación</Label>
               <Input id="especificacion" {...campoTexto("especificacion")} />
             </div>
@@ -127,9 +128,8 @@ export function ItemFormDialog({ open, onOpenChange, id, datosIniciales, onGuard
             </div>
             <div className="space-y-2">
               <Label htmlFor="moneda">Moneda</Label>
-              <select
+              <NativeSelect
                 id="moneda"
-                className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
                 value={datos.moneda}
                 onChange={(e) =>
                   setDatos((d) => ({ ...d, moneda: e.target.value as "Pesos" | "Dolar" }))
@@ -137,7 +137,7 @@ export function ItemFormDialog({ open, onOpenChange, id, datosIniciales, onGuard
               >
                 <option value="Pesos">Pesos</option>
                 <option value="Dolar">Dólar</option>
-              </select>
+              </NativeSelect>
             </div>
             <div className="space-y-2">
               <Label htmlFor="precioLista">Precio de lista *</Label>

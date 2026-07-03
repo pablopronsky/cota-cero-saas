@@ -3,16 +3,27 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { doc, onSnapshot } from "firebase/firestore";
+import { ArrowLeft, SquarePen } from "lucide-react";
 import { toast } from "sonner";
 import { db } from "@/lib/firebase/client";
 import { cambiarEstadoCliente } from "@/lib/acciones/clientes";
 import type { Cliente } from "@/lib/tipos";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EstadoClienteBadge } from "@/components/estado-badge";
 import { ClienteFormDialog } from "@/components/clientes/cliente-form-dialog";
 import { HistorialPresupuestosCliente } from "@/components/presupuestos/historial-cliente";
 import { CuentaCorrienteCliente } from "@/components/cuenta-corriente/cuenta-corriente-cliente";
+
+function Dato({ label, valor }: { label: string; valor: React.ReactNode }) {
+  return (
+    <div>
+      <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">{label}</p>
+      <p className="mt-0.5 text-sm">{valor || "—"}</p>
+    </div>
+  );
+}
 
 export function FichaCliente({ codigo }: { codigo: string }) {
   const [cliente, setCliente] = useState<Cliente | null | undefined>(undefined);
@@ -33,7 +44,13 @@ export function FichaCliente({ codigo }: { codigo: string }) {
   }, [codigo]);
 
   if (cliente === undefined) {
-    return <p className="text-muted-foreground">Cargando...</p>;
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-16 w-1/2 rounded-xl" />
+        <Skeleton className="h-32 w-full rounded-xl" />
+        <Skeleton className="h-64 w-full rounded-xl" />
+      </div>
+    );
   }
   if (cliente === null) {
     return <p className="text-muted-foreground">Cliente no encontrado.</p>;
@@ -54,74 +71,71 @@ export function FichaCliente({ codigo }: { codigo: string }) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <Link href="/clientes" className="text-sm text-muted-foreground hover:underline">
-            ← Clientes
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0">
+          <Link
+            href="/clientes"
+            className="inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <ArrowLeft className="size-3.5" />
+            Clientes
           </Link>
-          <h1 className="text-xl font-semibold">{cliente.nombre}</h1>
-          <p className="font-mono text-xs text-muted-foreground">{codigo}</p>
+          <div className="mt-1 flex flex-wrap items-center gap-3">
+            <h1 className="text-2xl font-semibold tracking-tight">{cliente.nombre}</h1>
+            <EstadoClienteBadge estado={cliente.estado} />
+          </div>
+          <p className="mt-1 font-mono text-xs text-muted-foreground">{codigo}</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Badge variant={cliente.estado === "Activo" ? "default" : "secondary"}>
-            {cliente.estado}
-          </Badge>
+        <div className="flex shrink-0 items-center gap-2">
           <Button variant="outline" onClick={toggleEstado} disabled={cambiandoEstado}>
             Marcar {cliente.estado === "Activo" ? "Inactivo" : "Activo"}
           </Button>
-          <Button onClick={() => setDialogEditar(true)}>Editar</Button>
+          <Button onClick={() => setDialogEditar(true)}>
+            <SquarePen data-icon="inline-start" />
+            Editar
+          </Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm text-muted-foreground">Teléfono</CardTitle>
-          </CardHeader>
-          <CardContent>{cliente.telefono}</CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm text-muted-foreground">Email</CardTitle>
-          </CardHeader>
-          <CardContent>{cliente.email || "—"}</CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm text-muted-foreground">Dirección</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {cliente.direccion || "—"}
-            {cliente.localidad ? `, ${cliente.localidad}` : ""}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm text-muted-foreground">Tipo</CardTitle>
-          </CardHeader>
-          <CardContent>{cliente.tipo || "—"}</CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm text-muted-foreground">CUIT / DNI</CardTitle>
-          </CardHeader>
-          <CardContent>{cliente.cuitDni || "—"}</CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm text-muted-foreground">Condición IVA</CardTitle>
-          </CardHeader>
-          <CardContent>{cliente.condicionIva || "—"}</CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm text-muted-foreground">Saldo</CardTitle>
-          </CardHeader>
-          <CardContent className="text-lg font-semibold">
-            {cliente.saldo.toLocaleString("es-AR", { style: "currency", currency: "ARS" })}
-          </CardContent>
-        </Card>
-      </div>
+      <Card size="sm">
+        <CardContent className="grid grid-cols-2 gap-x-6 gap-y-4 md:grid-cols-3 lg:grid-cols-4">
+          <Dato label="Teléfono" valor={cliente.telefono} />
+          <Dato label="Email" valor={cliente.email} />
+          <Dato
+            label="Dirección"
+            valor={
+              cliente.direccion
+                ? `${cliente.direccion}${cliente.localidad ? `, ${cliente.localidad}` : ""}`
+                : cliente.localidad
+            }
+          />
+          <Dato label="Tipo" valor={cliente.tipo} />
+          <Dato label="CUIT / DNI" valor={cliente.cuitDni} />
+          <Dato label="Condición IVA" valor={cliente.condicionIva} />
+          <Dato label="Origen" valor={cliente.origen} />
+          <Dato
+            label="Saldo"
+            valor={
+              <span
+                className={`tnum font-semibold ${
+                  cliente.saldo > 0
+                    ? "text-destructive"
+                    : cliente.saldo < 0
+                      ? "text-exito"
+                      : ""
+                }`}
+              >
+                {cliente.saldo.toLocaleString("es-AR", { style: "currency", currency: "ARS" })}
+              </span>
+            }
+          />
+          {cliente.notas && (
+            <div className="col-span-2 md:col-span-3 lg:col-span-4">
+              <Dato label="Notas" valor={cliente.notas} />
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
         <Card>

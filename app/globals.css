@@ -9,9 +9,9 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
+  --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  --font-heading: var(--font-geist-sans);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -54,6 +54,11 @@
   --color-cobre: var(--cobre);
   --color-hueso: var(--hueso);
   --color-piedra: var(--piedra);
+
+  /* Estados semánticos (badges de presupuesto/movimientos). */
+  --color-exito: var(--exito);
+  --color-exito-foreground: var(--exito-foreground);
+  --color-cobre-oscuro: var(--cobre-oscuro);
 }
 
 :root {
@@ -61,6 +66,12 @@
   --cobre: #c38a5a;
   --hueso: #f5f2ed;
   --piedra: #b8aea3;
+  /* Cobre oscurecido: única variante del cobre que llega a 4.5:1 sobre fondos
+     claros; se usa para texto/acentos cobre sobre hueso o blanco. */
+  --cobre-oscuro: #8a5527;
+  /* Verde apagado en la misma temperatura de la paleta, para "Confirmado"/pagos. */
+  --exito: #3e6f4f;
+  --exito-foreground: #ffffff;
 
   --background: var(--hueso);
   --foreground: var(--grafito);
@@ -69,7 +80,7 @@
   --popover: #ffffff;
   --popover-foreground: var(--grafito);
   --primary: var(--cobre);
-  --primary-foreground: var(--hueso);
+  --primary-foreground: #ffffff;
   --secondary: #ede7de;
   --secondary-foreground: var(--grafito);
   --muted: #ede7de;
@@ -80,7 +91,9 @@
   --accent: #f0e4d5;
   --accent-foreground: var(--grafito);
   --destructive: #b3261e;
-  --border: var(--piedra);
+  /* Borde por defecto más liviano que la piedra pura: tablas y cards respiran.
+     Los inputs conservan la piedra real para que el campo se lea como campo. */
+  --border: #ddd6cc;
   --input: var(--piedra);
   --ring: var(--cobre);
   --chart-1: var(--cobre);
@@ -108,6 +121,13 @@
     @apply bg-background text-foreground;
   }
   html {
-    @apply font-sans;
+    @apply font-sans antialiased;
+  }
+  ::selection {
+    background-color: color-mix(in srgb, var(--cobre) 25%, transparent);
+  }
+  /* Los importes y códigos alinean columnas sin ser fuente mono. */
+  .tnum {
+    font-variant-numeric: tabular-nums;
   }
 }

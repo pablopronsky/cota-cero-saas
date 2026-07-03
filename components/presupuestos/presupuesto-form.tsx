@@ -22,11 +22,14 @@ import type {
   Presupuesto,
 } from "@/lib/tipos";
 import type { Timestamp } from "firebase/firestore";
+import { Plus, RefreshCw, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { NativeSelect } from "@/components/ui/native-select";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Table,
   TableBody,
@@ -35,13 +38,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { VerificarBadge } from "@/components/estado-badge";
 import { Autocomplete } from "@/components/presupuestos/autocomplete";
 import { ClienteAltaRapidaDialog } from "@/components/clientes/cliente-alta-rapida-dialog";
-
-const SELECT_CLASS =
-  "h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
-const TEXTAREA_CLASS =
-  "w-full rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
 
 const MODALIDAD_LABEL: Record<ModalidadPresupuesto, string> = {
   integrada: "Integrada (materiales + mano de obra + accesorios)",
@@ -428,16 +427,20 @@ export function PresupuestoForm({ modo = "crear", presupuestoId, obraCodigoDesti
         : "Nuevo presupuesto";
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 pb-12">
-      <h1 className="text-xl font-semibold">{titulo}</h1>
-      {error && <p className="text-sm text-destructive">{error}</p>}
+    <form onSubmit={handleSubmit} className="space-y-6 pb-4">
+      <h1 className="text-2xl font-semibold tracking-tight">{titulo}</h1>
+      {error && (
+        <p role="alert" className="rounded-lg bg-destructive/8 px-3 py-2 text-sm text-destructive">
+          {error}
+        </p>
+      )}
 
       <Card>
         <CardHeader>
           <CardTitle>Cliente y obra</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label>Cliente *</Label>
               {clienteSeleccionado ? (
@@ -486,7 +489,7 @@ export function PresupuestoForm({ modo = "crear", presupuestoId, obraCodigoDesti
                 onChange={(e) => setTelefono(e.target.value)}
               />
             </div>
-            <div className="col-span-2 space-y-2">
+            <div className="space-y-2 sm:col-span-2">
               <Label htmlFor="direccionObra">Dirección de la obra</Label>
               <Input
                 id="direccionObra"
@@ -543,11 +546,10 @@ export function PresupuestoForm({ modo = "crear", presupuestoId, obraCodigoDesti
                 onChange={(e) => setNivelSubpiso(e.target.value)}
               />
             </div>
-            <div className="col-span-2 space-y-2">
+            <div className="space-y-2 sm:col-span-2">
               <Label htmlFor="observacionesRiesgos">Observaciones / riesgos</Label>
-              <textarea
+              <Textarea
                 id="observacionesRiesgos"
-                className={TEXTAREA_CLASS}
                 rows={2}
                 value={observacionesRiesgos}
                 onChange={(e) => setObservacionesRiesgos(e.target.value)}
@@ -562,8 +564,7 @@ export function PresupuestoForm({ modo = "crear", presupuestoId, obraCodigoDesti
           <CardTitle>Modalidad</CardTitle>
         </CardHeader>
         <CardContent>
-          <select
-            className={SELECT_CLASS}
+          <NativeSelect
             value={modalidad}
             onChange={(e) => setModalidad(e.target.value as ModalidadPresupuesto)}
           >
@@ -572,7 +573,7 @@ export function PresupuestoForm({ modo = "crear", presupuestoId, obraCodigoDesti
                 {MODALIDAD_LABEL[m]}
               </option>
             ))}
-          </select>
+          </NativeSelect>
         </CardContent>
       </Card>
 
@@ -581,6 +582,7 @@ export function PresupuestoForm({ modo = "crear", presupuestoId, obraCodigoDesti
           <CardTitle>Ítems</CardTitle>
           {modo === "duplicar" && (
             <Button type="button" variant="outline" size="sm" onClick={actualizarPreciosDesdeCatalogo}>
+              <RefreshCw data-icon="inline-start" />
               Actualizar precios desde catálogo
             </Button>
           )}
@@ -598,12 +600,13 @@ export function PresupuestoForm({ modo = "crear", presupuestoId, obraCodigoDesti
               />
             </div>
             <Button type="button" variant="outline" onClick={() => setManualAbierto((v) => !v)}>
+              <Plus data-icon="inline-start" />
               Ítem manual
             </Button>
           </div>
 
           {manualAbierto && (
-            <div className="grid grid-cols-5 gap-2 rounded-lg border border-input p-3">
+            <div className="grid grid-cols-2 gap-2 rounded-lg border border-dashed border-input bg-muted/40 p-3 sm:grid-cols-5">
               <div className="col-span-2 space-y-1">
                 <Label htmlFor="manualNombre">Nombre *</Label>
                 <Input
@@ -639,11 +642,10 @@ export function PresupuestoForm({ modo = "crear", presupuestoId, obraCodigoDesti
                   onChange={(e) => setManualPrecio(Number(e.target.value))}
                 />
               </div>
-              <div className="col-span-4 space-y-1">
+              <div className="col-span-2 space-y-1 sm:col-span-4">
                 <Label htmlFor="manualGrupo">Grupo contable *</Label>
-                <select
+                <NativeSelect
                   id="manualGrupo"
-                  className={SELECT_CLASS}
                   value={manualGrupo}
                   onChange={(e) => setManualGrupo(e.target.value as GrupoContable)}
                 >
@@ -652,10 +654,10 @@ export function PresupuestoForm({ modo = "crear", presupuestoId, obraCodigoDesti
                       {GRUPO_LABEL[g]}
                     </option>
                   ))}
-                </select>
+                </NativeSelect>
               </div>
-              <div className="flex items-end">
-                <Button type="button" onClick={agregarItemManual}>
+              <div className="col-span-2 flex items-end sm:col-span-1">
+                <Button type="button" className="w-full sm:w-auto" onClick={agregarItemManual}>
                   Agregar
                 </Button>
               </div>
@@ -687,18 +689,15 @@ export function PresupuestoForm({ modo = "crear", presupuestoId, obraCodigoDesti
                   return (
                     <TableRow key={item.key} className={excluido ? "opacity-50" : undefined}>
                       <TableCell>
-                        <div className="text-sm">{item.nombre}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {item.codigo && `${item.codigo} · `}
-                          {item.unidad}
-                          {item.requiereVerificacion && (
-                            <Badge variant="destructive" className="ml-1">
-                              Verificar
-                            </Badge>
-                          )}
-                          {excluido && <span className="ml-1 italic">no suma al total</span>}
+                        <div className="text-sm font-medium">{item.nombre}</div>
+                        <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+                          {item.codigo && <span className="font-mono">{item.codigo}</span>}
+                          {item.codigo && <span>·</span>}
+                          <span>{item.unidad}</span>
+                          {item.requiereVerificacion && <VerificarBadge />}
+                          {excluido && <span className="italic">no suma al total</span>}
                           {item.precioAnterior !== undefined && (
-                            <Badge variant="secondary" className="ml-1">
+                            <Badge variant="secondary">
                               Precio actualizado (antes {fmtMoneda(item.precioAnterior)})
                             </Badge>
                           )}
@@ -741,15 +740,17 @@ export function PresupuestoForm({ modo = "crear", presupuestoId, obraCodigoDesti
                           }
                         />
                       </TableCell>
-                      <TableCell className="text-right">{fmtMoneda(item.subtotal)}</TableCell>
+                      <TableCell className="tnum text-right font-medium">{fmtMoneda(item.subtotal)}</TableCell>
                       <TableCell>
                         <Button
                           type="button"
                           variant="ghost"
-                          size="sm"
+                          size="icon-sm"
+                          aria-label={`Quitar ${item.nombre}`}
+                          className="text-muted-foreground hover:text-destructive"
                           onClick={() => quitarItem(item.key)}
                         >
-                          Quitar
+                          <X />
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -763,42 +764,10 @@ export function PresupuestoForm({ modo = "crear", presupuestoId, obraCodigoDesti
 
       <Card>
         <CardHeader>
-          <CardTitle>Totales</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 gap-2 text-sm md:grid-cols-3">
-            <div>
-              <p className="text-muted-foreground">Materiales + accesorios</p>
-              <p
-                className={
-                  !incluidos.includes("materiales") && !incluidos.includes("accesorios")
-                    ? "text-muted-foreground"
-                    : ""
-                }
-              >
-                {fmtMoneda(totales.subtotalMateriales + totales.subtotalAccesorios)}
-              </p>
-            </div>
-            <div>
-              <p className="text-muted-foreground">Mano de obra</p>
-              <p className={!incluidos.includes("mano_obra") ? "text-muted-foreground" : ""}>
-                {fmtMoneda(totales.subtotalManoObra)}
-              </p>
-            </div>
-            <div>
-              <p className="text-muted-foreground">Total</p>
-              <p className="text-lg font-semibold">{fmtMoneda(totales.total)}</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
           <CardTitle>Condiciones</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="formaPago">Forma de pago</Label>
               <Input
@@ -815,11 +784,10 @@ export function PresupuestoForm({ modo = "crear", presupuestoId, obraCodigoDesti
               <Label htmlFor="moneda">Moneda</Label>
               <Input id="moneda" value={moneda} onChange={(e) => setMoneda(e.target.value)} />
             </div>
-            <div className="col-span-2 space-y-2">
+            <div className="space-y-2 sm:col-span-2">
               <Label htmlFor="exclusiones">Exclusiones / observaciones</Label>
-              <textarea
+              <Textarea
                 id="exclusiones"
-                className={TEXTAREA_CLASS}
                 rows={2}
                 value={exclusiones}
                 onChange={(e) => setExclusiones(e.target.value)}
@@ -829,8 +797,39 @@ export function PresupuestoForm({ modo = "crear", presupuestoId, obraCodigoDesti
         </CardContent>
       </Card>
 
-      <div className="flex justify-end">
-        <Button type="submit" disabled={guardando}>
+      {/* Barra fija: total en vivo + guardar, siempre a la vista mientras se carga el presupuesto. */}
+      <div className="sticky bottom-4 z-10 flex flex-wrap items-center justify-between gap-4 rounded-xl bg-grafito px-5 py-3 text-hueso shadow-lg shadow-grafito/25">
+        <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1">
+          <div className="text-xs text-hueso/60">
+            Materiales + accesorios{" "}
+            <span
+              className={`tnum ml-1 font-medium ${
+                !incluidos.includes("materiales") && !incluidos.includes("accesorios")
+                  ? "text-hueso/40 line-through"
+                  : "text-hueso"
+              }`}
+            >
+              {fmtMoneda(totales.subtotalMateriales + totales.subtotalAccesorios)}
+            </span>
+          </div>
+          <div className="text-xs text-hueso/60">
+            Mano de obra{" "}
+            <span
+              className={`tnum ml-1 font-medium ${
+                !incluidos.includes("mano_obra") ? "text-hueso/40 line-through" : "text-hueso"
+              }`}
+            >
+              {fmtMoneda(totales.subtotalManoObra)}
+            </span>
+          </div>
+          <div className="flex items-baseline gap-2">
+            <span className="text-xs font-semibold tracking-wide text-hueso/80 uppercase">Total</span>
+            <span className="tnum font-mono text-lg font-bold text-cobre">
+              {fmtMoneda(totales.total)}
+            </span>
+          </div>
+        </div>
+        <Button type="submit" disabled={guardando} className="bg-cobre text-white hover:bg-cobre/85">
           {guardando ? "Guardando..." : "Guardar presupuesto"}
         </Button>
       </div>

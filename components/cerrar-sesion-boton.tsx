@@ -27,10 +27,10 @@ export function CerrarSesionBoton() {
       size="sm"
       onClick={handleClick}
       disabled={pending}
-      className="text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+      className="w-full justify-start text-sidebar-foreground/60 hover:bg-white/5 hover:text-sidebar-foreground"
     >
       <LogOut className="size-4" />
-      Cerrar sesión
+      {pending ? "Cerrando..." : "Cerrar sesión"}
     </Button>
   );
 }

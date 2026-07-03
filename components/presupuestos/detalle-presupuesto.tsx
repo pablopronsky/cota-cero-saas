@@ -9,10 +9,14 @@ import { db } from "@/lib/firebase/client";
 import { puedeEditarse, puedeDuplicarse, puedeConfirmarse, puedeAnularse } from "@/lib/reglas/validaciones";
 import { gruposIncluidos } from "@/lib/reglas/totales";
 import { confirmarPresupuesto, anularConfirmacion } from "@/lib/acciones/cuentaCorriente";
-import type { EstadoPresupuesto, GrupoContable, ModalidadPresupuesto, Presupuesto } from "@/lib/tipos";
+import type { GrupoContable, ModalidadPresupuesto, Presupuesto } from "@/lib/tipos";
+import { ArrowLeft, Ban, CheckCheck, Copy, FileDown, SquarePen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
+import { EstadoPresupuestoBadge, VerificarBadge } from "@/components/estado-badge";
 import {
   Table,
   TableBody,
@@ -30,16 +34,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-
-const ESTADO_VARIANT: Record<
-  EstadoPresupuesto,
-  "default" | "secondary" | "destructive" | "outline"
-> = {
-  Emitido: "default",
-  Confirmado: "secondary",
-  Anulado: "destructive",
-  Superado: "outline",
-};
 
 const GRUPO_LABEL: Record<GrupoContable, string> = {
   materiales: "Materiales",
@@ -74,7 +68,15 @@ export function DetallePresupuesto({ id }: { id: string }) {
     );
   }, [id]);
 
-  if (presupuesto === undefined) return <p className="text-muted-foreground">Cargando...</p>;
+  if (presupuesto === undefined) {
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-16 w-2/3 rounded-xl" />
+        <Skeleton className="h-40 w-full rounded-xl" />
+        <Skeleton className="h-64 w-full rounded-xl" />
+      </div>
+    );
+  }
   if (presupuesto === null) return <p className="text-muted-foreground">Presupuesto no encontrado.</p>;
 
   const incluidos = gruposIncluidos(presupuesto.modalidad);
@@ -110,21 +112,31 @@ export function DetallePresupuesto({ id }: { id: string }) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <Link href="/presupuestos" className="text-sm text-muted-foreground hover:underline">
-            ← Presupuestos
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0">
+          <Link
+            href="/presupuestos"
+            className="inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <ArrowLeft className="size-3.5" />
+            Presupuestos
           </Link>
-          <h1 className="text-xl font-semibold">
-            {presupuesto.obraCodigo} · v{presupuesto.version}
-          </h1>
-          <p className="text-sm text-muted-foreground">{presupuesto.clienteNombre}</p>
+          <div className="mt-1 flex flex-wrap items-center gap-3">
+            <h1 className="font-mono text-2xl font-semibold tracking-tight text-cobre-oscuro">
+              {presupuesto.obraCodigo}
+              <span className="ml-2 text-base font-medium text-muted-foreground">
+                v{presupuesto.version}
+              </span>
+            </h1>
+            <EstadoPresupuestoBadge estado={presupuesto.estado} />
+            {presupuesto.esLegado && <Badge variant="outline">Legado</Badge>}
+          </div>
+          <p className="mt-1 text-sm text-muted-foreground">{presupuesto.clienteNombre}</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Badge variant={ESTADO_VARIANT[presupuesto.estado]}>{presupuesto.estado}</Badge>
-          {presupuesto.esLegado && <Badge variant="outline">Legado</Badge>}
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
           {!presupuesto.esLegado && (
             <Button variant="outline" onClick={generarPdf} disabled={generandoPdf}>
+              <FileDown data-icon="inline-start" />
               {generandoPdf
                 ? "Generando..."
                 : presupuesto.pdfPath
@@ -134,21 +146,29 @@ export function DetallePresupuesto({ id }: { id: string }) {
           )}
           {!presupuesto.esLegado && puedeEditarse(presupuesto.estado) && (
             <Button variant="outline" asChild>
-              <Link href={`/presupuestos/${id}/editar`}>Editar</Link>
+              <Link href={`/presupuestos/${id}/editar`}>
+                <SquarePen data-icon="inline-start" />
+                Editar
+              </Link>
             </Button>
           )}
           {!presupuesto.esLegado && puedeConfirmarse(presupuesto.estado) && (
             <Button onClick={confirmar} disabled={confirmando}>
+              <CheckCheck data-icon="inline-start" />
               {confirmando ? "Confirmando..." : "Confirmar"}
             </Button>
           )}
           {!presupuesto.esLegado && puedeAnularse(presupuesto.estado) && (
             <Button variant="destructive" onClick={() => setDialogAnular(true)}>
+              <Ban data-icon="inline-start" />
               Anular
             </Button>
           )}
           {puedeDuplicarse(presupuesto.estado) && (
-            <Button onClick={() => setDialogDuplicar(true)}>Duplicar</Button>
+            <Button variant={puedeConfirmarse(presupuesto.estado) ? "outline" : "default"} onClick={() => setDialogDuplicar(true)}>
+              <Copy data-icon="inline-start" />
+              Duplicar
+            </Button>
           )}
         </div>
       </div>
@@ -227,24 +247,21 @@ export function DetallePresupuesto({ id }: { id: string }) {
                   return (
                     <TableRow key={i} className={excluido ? "opacity-50" : undefined}>
                       <TableCell>
-                        <div className="text-sm">{item.nombre}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {item.codigo && `${item.codigo} · `}
-                          {item.unidad}
-                          {item.requiereVerificacion && (
-                            <Badge variant="destructive" className="ml-1">
-                              Verificar
-                            </Badge>
-                          )}
-                          {excluido && <span className="ml-1 italic">no suma al total</span>}
+                        <div className="text-sm font-medium">{item.nombre}</div>
+                        <div className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+                          {item.codigo && <span className="font-mono">{item.codigo}</span>}
+                          {item.codigo && <span>·</span>}
+                          <span>{item.unidad}</span>
+                          {item.requiereVerificacion && <VerificarBadge />}
+                          {excluido && <span className="italic">no suma al total</span>}
                         </div>
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline">{GRUPO_LABEL[item.grupoContable]}</Badge>
                       </TableCell>
-                      <TableCell>{item.cantidad}</TableCell>
-                      <TableCell>{fmtMoneda(item.precioUnitario)}</TableCell>
-                      <TableCell className="text-right">{fmtMoneda(item.subtotal)}</TableCell>
+                      <TableCell className="tnum">{item.cantidad}</TableCell>
+                      <TableCell className="tnum">{fmtMoneda(item.precioUnitario)}</TableCell>
+                      <TableCell className="tnum text-right font-medium">{fmtMoneda(item.subtotal)}</TableCell>
                     </TableRow>
                   );
                 })}
@@ -253,36 +270,45 @@ export function DetallePresupuesto({ id }: { id: string }) {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Totales</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 gap-2 text-sm md:grid-cols-3">
-            <div>
-              <p className="text-muted-foreground">Materiales + accesorios</p>
-              <p
-                className={
-                  !incluidos.includes("materiales") && !incluidos.includes("accesorios")
-                    ? "text-muted-foreground"
-                    : ""
-                }
-              >
-                {fmtMoneda(presupuesto.subtotalMateriales + presupuesto.subtotalAccesorios)}
-              </p>
-            </div>
-            <div>
-              <p className="text-muted-foreground">Mano de obra</p>
-              <p className={!incluidos.includes("mano_obra") ? "text-muted-foreground" : ""}>
-                {fmtMoneda(presupuesto.subtotalManoObra)}
-              </p>
-            </div>
-            <div>
-              <p className="text-muted-foreground">Total</p>
-              <p className="text-lg font-semibold">{fmtMoneda(presupuesto.total)}</p>
-            </div>
+      <Card className="overflow-hidden py-0">
+        <div className="grid grid-cols-2 gap-4 px-4 py-4 text-sm md:grid-cols-2">
+          <div>
+            <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+              Materiales + accesorios
+            </p>
+            <p
+              className={`tnum mt-0.5 font-medium ${
+                !incluidos.includes("materiales") && !incluidos.includes("accesorios")
+                  ? "text-muted-foreground line-through decoration-piedra"
+                  : ""
+              }`}
+            >
+              {fmtMoneda(presupuesto.subtotalMateriales + presupuesto.subtotalAccesorios)}
+            </p>
           </div>
-        </CardContent>
+          <div>
+            <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+              Mano de obra
+            </p>
+            <p
+              className={`tnum mt-0.5 font-medium ${
+                !incluidos.includes("mano_obra")
+                  ? "text-muted-foreground line-through decoration-piedra"
+                  : ""
+              }`}
+            >
+              {fmtMoneda(presupuesto.subtotalManoObra)}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center justify-between bg-grafito px-4 py-3">
+          <p className="text-sm font-semibold tracking-wide text-hueso uppercase">
+            Total de la propuesta
+          </p>
+          <p className="tnum font-mono text-xl font-bold text-cobre">
+            {fmtMoneda(presupuesto.total)}
+          </p>
+        </div>
       </Card>
 
       <Card>
@@ -319,8 +345,8 @@ export function DetallePresupuesto({ id }: { id: string }) {
 function Campo({ label, valor }: { label: string; valor: string }) {
   return (
     <div>
-      <p className="text-muted-foreground">{label}</p>
-      <p>{valor || "—"}</p>
+      <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">{label}</p>
+      <p className="mt-0.5">{valor || "—"}</p>
     </div>
   );
 }
@@ -374,9 +400,8 @@ function AnularDialog({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="motivo-anular">Motivo *</Label>
-            <textarea
+            <Textarea
               id="motivo-anular"
-              className="w-full rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
               rows={2}
               required
               value={motivo}

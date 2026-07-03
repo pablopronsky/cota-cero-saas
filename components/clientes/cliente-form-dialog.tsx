@@ -85,7 +85,7 @@ export function ClienteFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{codigo ? "Editar cliente" : "Nuevo cliente"}</DialogTitle>
           <DialogDescription>
@@ -93,8 +93,8 @@ export function ClienteFormDialog({
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="col-span-2 space-y-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="sm:col-span-2 space-y-2">
               <Label htmlFor="nombre">Nombre *</Label>
               <Input id="nombre" required {...campo("nombre")} />
             </div>
@@ -106,7 +106,7 @@ export function ClienteFormDialog({
               <Label htmlFor="email">Email</Label>
               <Input id="email" type="email" {...campo("email")} />
             </div>
-            <div className="col-span-2 space-y-2">
+            <div className="space-y-2 sm:col-span-2">
               <Label htmlFor="direccion">Dirección</Label>
               <Input id="direccion" {...campo("direccion")} />
             </div>
@@ -130,7 +130,7 @@ export function ClienteFormDialog({
               <Label htmlFor="origen">Origen</Label>
               <Input id="origen" {...campo("origen")} />
             </div>
-            <div className="col-span-2 space-y-2">
+            <div className="space-y-2 sm:col-span-2">
               <Label htmlFor="notas">Notas</Label>
               <Input id="notas" {...campo("notas")} />
             </div>

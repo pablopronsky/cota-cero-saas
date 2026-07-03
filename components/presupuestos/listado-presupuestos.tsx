@@ -3,30 +3,28 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
+import { FileText, Plus, Search } from "lucide-react";
 import { db } from "@/lib/firebase/client";
 import { normalizar } from "@/lib/reglas/normalizar";
-import type { EstadoPresupuesto, Presupuesto } from "@/lib/tipos";
+import type { ModalidadPresupuesto, Presupuesto } from "@/lib/tipos";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { NativeSelect } from "@/components/ui/native-select";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
+import { EstadoPresupuestoBadge } from "@/components/estado-badge";
+import { PageHeader } from "@/components/page-header";
 
 interface PresupuestoConId extends Presupuesto {
   id: string;
 }
 
-const ESTADO_VARIANT: Record<
-  EstadoPresupuesto,
-  "default" | "secondary" | "destructive" | "outline"
-> = {
-  Emitido: "default",
-  Confirmado: "secondary",
-  Anulado: "destructive",
-  Superado: "outline",
+const MODALIDAD_LABEL: Record<ModalidadPresupuesto, string> = {
+  integrada: "Integrada",
+  colocacion: "Colocación",
+  materiales: "Solo materiales",
 };
-
-const SELECT_CLASS =
-  "h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
 
 const fmtMoneda = (n: number) => n.toLocaleString("es-AR", { style: "currency", currency: "ARS" });
 
@@ -83,75 +81,118 @@ export function ListadoPresupuestos() {
       .sort((a, b) => (a.obraCodigo < b.obraCodigo ? 1 : -1));
   }, [presupuestos, busqueda, filtroEstado, filtroAnio]);
 
+  const hayFiltros = busqueda.trim() !== "" || filtroEstado !== "" || filtroAnio !== "";
+
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between gap-4">
-        <h1 className="text-xl font-semibold">Presupuestos</h1>
-        <Button asChild>
-          <Link href="/presupuestos/nuevo">Nuevo presupuesto</Link>
-        </Button>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        title="Presupuestos"
+        description={
+          presupuestos === null
+            ? "Cargando obras..."
+            : `${grupos.length} obra${grupos.length === 1 ? "" : "s"} · ${presupuestos.length} presupuesto${presupuestos.length === 1 ? "" : "s"}`
+        }
+        actions={
+          <Button asChild>
+            <Link href="/presupuestos/nuevo">
+              <Plus data-icon="inline-start" />
+              Nuevo presupuesto
+            </Link>
+          </Button>
+        }
+      />
 
       <div className="flex flex-wrap gap-2">
-        <Input
-          placeholder="Buscar por cliente u obra..."
-          value={busqueda}
-          onChange={(e) => setBusqueda(e.target.value)}
-          className="max-w-sm"
-        />
-        <select
-          className={SELECT_CLASS}
-          value={filtroEstado}
-          onChange={(e) => setFiltroEstado(e.target.value)}
-        >
+        <div className="relative w-full max-w-sm">
+          <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Buscar por cliente u obra..."
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            className="bg-card pl-8"
+          />
+        </div>
+        <NativeSelect value={filtroEstado} onChange={(e) => setFiltroEstado(e.target.value)}>
           <option value="">Todos los estados</option>
           <option value="Emitido">Emitido</option>
           <option value="Confirmado">Confirmado</option>
           <option value="Anulado">Anulado</option>
           <option value="Superado">Superado</option>
-        </select>
-        <select
-          className={SELECT_CLASS}
-          value={filtroAnio}
-          onChange={(e) => setFiltroAnio(e.target.value)}
-        >
+        </NativeSelect>
+        <NativeSelect value={filtroAnio} onChange={(e) => setFiltroAnio(e.target.value)}>
           <option value="">Todos los años</option>
           {anios.map((a) => (
             <option key={a} value={a}>
               {a}
             </option>
           ))}
-        </select>
+        </NativeSelect>
       </div>
 
-      {presupuestos === null && <p className="text-muted-foreground">Cargando...</p>}
+      {presupuestos === null && (
+        <div className="space-y-3">
+          {[0, 1, 2].map((i) => (
+            <Skeleton key={i} className="h-28 w-full rounded-xl" />
+          ))}
+        </div>
+      )}
+
       {presupuestos !== null && grupos.length === 0 && (
-        <p className="text-muted-foreground">Sin resultados.</p>
+        <Card>
+          <EmptyState
+            icon={FileText}
+            title={hayFiltros ? "Sin resultados" : "Todavía no hay presupuestos"}
+            description={
+              hayFiltros
+                ? "Probá con otro término de búsqueda o limpiá los filtros."
+                : "Creá el primer presupuesto para empezar a trabajar."
+            }
+          >
+            {!hayFiltros && (
+              <Button asChild variant="outline" size="sm">
+                <Link href="/presupuestos/nuevo">
+                  <Plus data-icon="inline-start" />
+                  Nuevo presupuesto
+                </Link>
+              </Button>
+            )}
+          </EmptyState>
+        </Card>
       )}
 
       <div className="space-y-3">
         {grupos.map((g) => (
-          <Card key={g.obraCodigo}>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between text-sm font-normal">
-                <span className="font-mono font-medium">{g.obraCodigo}</span>
-                <span className="text-muted-foreground">{g.clienteNombre}</span>
+          <Card key={g.obraCodigo} size="sm">
+            <CardHeader className="border-b [.border-b]:pb-3">
+              <CardTitle className="flex items-baseline justify-between gap-4 text-sm">
+                <span className="font-mono font-semibold tracking-tight text-cobre-oscuro">
+                  {g.obraCodigo}
+                </span>
+                <span className="truncate font-sans font-normal text-muted-foreground">
+                  {g.clienteNombre}
+                </span>
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-1">
+            <CardContent className="space-y-0.5">
               {g.versiones.map((v) => (
                 <Link
                   key={v.id}
                   href={`/presupuestos/${v.id}`}
-                  className="flex items-center justify-between gap-4 rounded-md px-2 py-1.5 text-sm hover:bg-muted"
+                  className="group flex items-center gap-3 rounded-lg px-2 py-2 text-sm transition-colors hover:bg-accent/60"
                 >
-                  <span className="w-12">
+                  <span className="inline-flex h-5 w-9 shrink-0 items-center justify-center rounded-md bg-muted font-mono text-xs font-medium text-muted-foreground">
                     v{v.version}
-                    {v.esLegado && " ·L"}
                   </span>
-                  <span className="flex-1 text-muted-foreground">{v.modalidad}</span>
-                  <Badge variant={ESTADO_VARIANT[v.estado]}>{v.estado}</Badge>
-                  <span className="w-28 text-right font-medium">{fmtMoneda(v.total)}</span>
+                  {v.esLegado && (
+                    <span className="shrink-0 rounded-md border border-border px-1.5 py-0.5 text-[10px] tracking-wide text-muted-foreground uppercase">
+                      Legado
+                    </span>
+                  )}
+                  <span className="flex-1 truncate text-muted-foreground">
+                    {MODALIDAD_LABEL[v.modalidad]}
+                  </span>
+                  <EstadoPresupuestoBadge estado={v.estado} />
+                  <span className="tnum w-32 text-right font-semibold">{fmtMoneda(v.total)}</span>
                 </Link>
               ))}
             </CardContent>

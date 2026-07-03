@@ -28,5 +28,7 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|api).*)"],
+  // El último grupo (.*\\..*) excluye archivos estáticos de public/ (p. ej.
+  // /logo/*.svg): sin esto, el logo del login redirige a /login y no carga.
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|api|.*\\..*).*)"],
 };

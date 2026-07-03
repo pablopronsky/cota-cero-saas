@@ -20,11 +20,14 @@ import {
   registrarAjuste,
   registrarPago,
 } from "@/lib/acciones/cuentaCorriente";
-import type { Cliente, Movimiento, Presupuesto, TipoMovimiento } from "@/lib/tipos";
+import type { Cliente, Movimiento, Presupuesto } from "@/lib/tipos";
+import { Receipt } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
+import { NativeSelect } from "@/components/ui/native-select";
+import { Textarea } from "@/components/ui/textarea";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -41,27 +44,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-
-const SELECT_CLASS =
-  "h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
-const TEXTAREA_CLASS =
-  "w-full rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
-
-const TIPO_LABEL: Record<TipoMovimiento, string> = {
-  CONFIRMACION_PRESUPUESTO: "Confirmación",
-  PAGO: "Pago",
-  ANULACION_PRESUPUESTO: "Anulación confirmación",
-  ANULACION_PAGO: "Anulación pago",
-  AJUSTE: "Ajuste",
-};
-
-const TIPO_VARIANT: Record<TipoMovimiento, "default" | "secondary" | "destructive" | "outline"> = {
-  CONFIRMACION_PRESUPUESTO: "secondary",
-  PAGO: "default",
-  ANULACION_PRESUPUESTO: "destructive",
-  ANULACION_PAGO: "destructive",
-  AJUSTE: "outline",
-};
+import { TipoMovimientoBadge } from "@/components/estado-badge";
 
 interface MovimientoConId extends Movimiento {
   id: string;
@@ -175,16 +158,18 @@ export function CuentaCorrienteCliente({ clienteId }: { clienteId: string }) {
     }
   }
 
-  if (cliente === undefined) return <p className="text-sm text-muted-foreground">Cargando...</p>;
+  if (cliente === undefined) return <Skeleton className="h-40 w-full rounded-lg" />;
   if (cliente === null) return <p className="text-sm text-muted-foreground">Cliente no encontrado.</p>;
 
   return (
     <div className="space-y-4">
       <div>
-        <p className="text-sm text-muted-foreground">Saldo actual</p>
+        <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+          Saldo actual
+        </p>
         <p
-          className={`text-lg font-semibold ${
-            cliente.saldo > 0 ? "text-destructive" : cliente.saldo < 0 ? "text-primary" : ""
+          className={`tnum mt-0.5 text-xl font-semibold ${
+            cliente.saldo > 0 ? "text-destructive" : cliente.saldo < 0 ? "text-exito" : ""
           }`}
         >
           {fmtMoneda(cliente.saldo)}
@@ -214,50 +199,55 @@ export function CuentaCorrienteCliente({ clienteId }: { clienteId: string }) {
         </Button>
       </div>
 
-      <div className="rounded-md border bg-card">
+      {/* Tabla — desktop/tablet */}
+      <div className="hidden overflow-hidden rounded-xl bg-card ring-1 ring-foreground/10 md:block">
         <Table>
           <TableHeader>
-            <TableRow>
-              <TableHead>Fecha</TableHead>
+            <TableRow className="hover:bg-transparent">
+              <TableHead className="pl-4">Fecha</TableHead>
               <TableHead>Movimiento</TableHead>
               <TableHead className="text-right">Debe</TableHead>
               <TableHead className="text-right">Haber</TableHead>
               <TableHead className="text-right">Saldo</TableHead>
-              <TableHead />
+              <TableHead className="pr-4" />
             </TableRow>
           </TableHeader>
           <TableBody>
             {movimientos === null && (
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-muted-foreground">
-                  Cargando...
+                <TableCell colSpan={6} className="py-6 text-center text-muted-foreground">
+                  Cargando movimientos...
                 </TableCell>
               </TableRow>
             )}
             {movimientos !== null && movimientos.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-muted-foreground">
-                  Sin movimientos.
+                <TableCell colSpan={6} className="py-6 text-center text-muted-foreground">
+                  Sin movimientos todavía.
                 </TableCell>
               </TableRow>
             )}
             {movimientosConAcumulado.map((m) => (
               <TableRow key={m.id}>
-                <TableCell className="text-xs whitespace-nowrap">
+                <TableCell className="pl-4 text-xs whitespace-nowrap text-muted-foreground">
                   {fmtFecha(m.fechaHora as unknown as Timestamp)}
                 </TableCell>
-                <TableCell>
+                <TableCell className="whitespace-normal">
                   <div className="flex flex-wrap items-center gap-1.5">
-                    <Badge variant={TIPO_VARIANT[m.tipo]}>{TIPO_LABEL[m.tipo]}</Badge>
+                    <TipoMovimientoBadge tipo={m.tipo} />
                     <span className="text-sm">{m.concepto}</span>
                   </div>
-                  {m.motivo && <p className="text-xs text-muted-foreground">Motivo: {m.motivo}</p>}
-                  <p className="font-mono text-xs text-muted-foreground">{m.codigo}</p>
+                  {m.motivo && <p className="mt-0.5 text-xs text-muted-foreground">Motivo: {m.motivo}</p>}
+                  <p className="mt-0.5 font-mono text-xs text-muted-foreground/70">{m.codigo}</p>
                 </TableCell>
-                <TableCell className="text-right">{m.debe > 0 ? fmtMoneda(m.debe) : "—"}</TableCell>
-                <TableCell className="text-right">{m.haber > 0 ? fmtMoneda(m.haber) : "—"}</TableCell>
-                <TableCell className="text-right font-medium">{fmtMoneda(m.acumulado)}</TableCell>
-                <TableCell>
+                <TableCell className="tnum text-right">
+                  {m.debe > 0 ? fmtMoneda(m.debe) : <span className="text-muted-foreground/50">—</span>}
+                </TableCell>
+                <TableCell className="tnum text-right">
+                  {m.haber > 0 ? fmtMoneda(m.haber) : <span className="text-muted-foreground/50">—</span>}
+                </TableCell>
+                <TableCell className="tnum text-right font-medium">{fmtMoneda(m.acumulado)}</TableCell>
+                <TableCell className="pr-4">
                   <div className="flex items-center justify-end gap-1">
                     {m.presupuestoId && (
                       <Button type="button" variant="ghost" size="sm" asChild>
@@ -272,6 +262,7 @@ export function CuentaCorrienteCliente({ clienteId }: { clienteId: string }) {
                         disabled={generandoRecibo === m.id}
                         onClick={() => descargarRecibo(m.id)}
                       >
+                        <Receipt data-icon="inline-start" />
                         {generandoRecibo === m.id ? "Generando..." : "Recibo"}
                       </Button>
                     )}
@@ -281,6 +272,67 @@ export function CuentaCorrienteCliente({ clienteId }: { clienteId: string }) {
             ))}
           </TableBody>
         </Table>
+      </div>
+
+      {/* Tarjetas — mobile */}
+      <div className="space-y-2 md:hidden">
+        {movimientos === null && (
+          <p className="py-6 text-center text-sm text-muted-foreground">Cargando movimientos...</p>
+        )}
+        {movimientos !== null && movimientos.length === 0 && (
+          <p className="py-6 text-center text-sm text-muted-foreground">Sin movimientos todavía.</p>
+        )}
+        {movimientosConAcumulado.map((m) => (
+          <div key={m.id} className="rounded-xl bg-card p-3 ring-1 ring-foreground/10">
+            <div className="flex items-start justify-between gap-2">
+              <TipoMovimientoBadge tipo={m.tipo} />
+              <span className="text-xs whitespace-nowrap text-muted-foreground">
+                {fmtFecha(m.fechaHora as unknown as Timestamp)}
+              </span>
+            </div>
+            <p className="mt-1.5 text-sm">{m.concepto}</p>
+            {m.motivo && <p className="mt-0.5 text-xs text-muted-foreground">Motivo: {m.motivo}</p>}
+            <p className="mt-0.5 font-mono text-xs text-muted-foreground/70">{m.codigo}</p>
+            <div className="mt-2.5 flex items-center justify-between gap-3 border-t border-border pt-2.5 text-xs">
+              <div className="flex gap-4">
+                {m.debe > 0 && (
+                  <span className="text-muted-foreground">
+                    Debe <span className="tnum font-medium text-foreground">{fmtMoneda(m.debe)}</span>
+                  </span>
+                )}
+                {m.haber > 0 && (
+                  <span className="text-muted-foreground">
+                    Haber <span className="tnum font-medium text-foreground">{fmtMoneda(m.haber)}</span>
+                  </span>
+                )}
+              </div>
+              <span className="text-muted-foreground">
+                Saldo <span className="tnum font-semibold text-foreground">{fmtMoneda(m.acumulado)}</span>
+              </span>
+            </div>
+            {(m.presupuestoId || m.tipo === "PAGO") && (
+              <div className="mt-1 flex items-center justify-end gap-1">
+                {m.presupuestoId && (
+                  <Button type="button" variant="ghost" size="sm" asChild>
+                    <Link href={`/presupuestos/${m.presupuestoId}`}>Ver</Link>
+                  </Button>
+                )}
+                {m.tipo === "PAGO" && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    disabled={generandoRecibo === m.id}
+                    onClick={() => descargarRecibo(m.id)}
+                  >
+                    <Receipt data-icon="inline-start" />
+                    {generandoRecibo === m.id ? "Generando..." : "Recibo"}
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
+        ))}
       </div>
 
       <ConfirmarPresupuestoDialog
@@ -359,9 +411,8 @@ function ConfirmarPresupuestoDialog({
           ) : (
             <div className="space-y-2">
               <Label htmlFor="presupuesto-confirmar">Presupuesto</Label>
-              <select
+              <NativeSelect
                 id="presupuesto-confirmar"
-                className={SELECT_CLASS}
                 value={presupuestoId}
                 onChange={(e) => setPresupuestoId(e.target.value)}
               >
@@ -370,7 +421,7 @@ function ConfirmarPresupuestoDialog({
                     {p.obraCodigo} v{p.version} · {fmtMoneda(p.total)}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
             </div>
           )}
           {error && <p className="text-sm text-destructive">{error}</p>}
@@ -497,9 +548,8 @@ function RegistrarPagoDialog({
           {presupuestos.length > 0 && (
             <div className="space-y-2">
               <Label htmlFor="presupuesto-pago">Presupuesto asociado</Label>
-              <select
+              <NativeSelect
                 id="presupuesto-pago"
-                className={SELECT_CLASS}
                 value={presupuestoId}
                 onChange={(e) => setPresupuestoId(e.target.value)}
               >
@@ -509,7 +559,7 @@ function RegistrarPagoDialog({
                     {p.obraCodigo} v{p.version} · {fmtMoneda(p.total)}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
             </div>
           )}
           {avisoSaldoAFavor && (
@@ -587,9 +637,8 @@ function AnularConfirmacionDialog({
           ) : (
             <div className="space-y-2">
               <Label htmlFor="presupuesto-anular-confirmacion">Presupuesto</Label>
-              <select
+              <NativeSelect
                 id="presupuesto-anular-confirmacion"
-                className={SELECT_CLASS}
                 value={presupuestoId}
                 onChange={(e) => setPresupuestoId(e.target.value)}
               >
@@ -598,14 +647,13 @@ function AnularConfirmacionDialog({
                     {p.obraCodigo} v{p.version} · {fmtMoneda(p.total)}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
             </div>
           )}
           <div className="space-y-2">
             <Label htmlFor="motivo-anular-confirmacion">Motivo *</Label>
-            <textarea
+            <Textarea
               id="motivo-anular-confirmacion"
-              className={TEXTAREA_CLASS}
               rows={2}
               required
               value={motivo}
@@ -669,9 +717,8 @@ function AnularPagoDialog({
           ) : (
             <div className="space-y-2">
               <Label htmlFor="pago-anular">Pago</Label>
-              <select
+              <NativeSelect
                 id="pago-anular"
-                className={SELECT_CLASS}
                 value={movimientoId}
                 onChange={(e) => setMovimientoId(e.target.value)}
               >
@@ -680,14 +727,13 @@ function AnularPagoDialog({
                     {m.codigo} · {fmtFecha(m.fechaHora as unknown as Timestamp)} · {fmtMoneda(m.haber)}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
             </div>
           )}
           <div className="space-y-2">
             <Label htmlFor="motivo-anular-pago">Motivo *</Label>
-            <textarea
+            <Textarea
               id="motivo-anular-pago"
-              className={TEXTAREA_CLASS}
               rows={2}
               required
               value={motivo}
@@ -771,15 +817,14 @@ function AjusteDialog({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="tipo-ajuste">Tipo</Label>
-            <select
+            <NativeSelect
               id="tipo-ajuste"
-              className={SELECT_CLASS}
               value={tipo}
               onChange={(e) => setTipo(e.target.value as "debe" | "haber")}
             >
               <option value="debe">Debe (aumenta la deuda)</option>
               <option value="haber">Haber (reduce la deuda)</option>
-            </select>
+            </NativeSelect>
           </div>
           <div className="space-y-2">
             <Label htmlFor="monto-ajuste">Monto *</Label>
@@ -795,9 +840,8 @@ function AjusteDialog({
           </div>
           <div className="space-y-2">
             <Label htmlFor="motivo-ajuste">Motivo *</Label>
-            <textarea
+            <Textarea
               id="motivo-ajuste"
-              className={TEXTAREA_CLASS}
               rows={2}
               required
               value={motivo}
