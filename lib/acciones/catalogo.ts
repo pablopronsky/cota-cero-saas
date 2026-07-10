@@ -6,7 +6,7 @@ import { obtenerUsuarioSesion } from "@/lib/firebase/sesion";
 import { clasificarGrupoContable } from "@/lib/reglas/clasificacion";
 import { extraerM2PorCaja } from "@/lib/reglas/m2caja";
 import { precioEfectivo } from "@/lib/reglas/precios";
-import type { ConfigGeneral, EstadoCatalogo, Moneda } from "@/lib/tipos";
+import type { ConfigGeneral, EstadoCatalogo, ItemCatalogo, Moneda } from "@/lib/tipos";
 
 export interface DatosItemCatalogo {
   codigo: string;
@@ -22,6 +22,15 @@ export interface DatosItemCatalogo {
 
 export type ResultadoCrearItem = { ok: true; id: string } | { ok: false; error: string };
 export type ResultadoAccion = { ok: true } | { ok: false; error: string };
+export type ResultadoActualizacionMasiva =
+  | { ok: true; cantidad: number }
+  | { ok: false; error: string };
+
+export interface FiltroActualizacionPrecios {
+  rubro?: string;
+  proveedor?: string;
+  moneda?: Moneda | "";
+}
 
 /** Errores esperados (validación de negocio) cuyo mensaje es seguro mostrar tal cual. */
 class ErrorValidacion extends Error {}
@@ -73,6 +82,53 @@ function camposDerivados(datos: DatosItemCatalogo) {
     m2PorCaja,
     requiereVerificacion,
   };
+}
+
+function redondearPrecio(valor: number) {
+  return Math.round((valor + Number.EPSILON) * 100) / 100;
+}
+
+export async function actualizarPreciosEnMasa(
+  filtro: FiltroActualizacionPrecios,
+  porcentaje: number,
+): Promise<ResultadoActualizacionMasiva> {
+  try {
+    await requerirUsuario();
+    if (!Number.isFinite(porcentaje) || porcentaje < -100) {
+      throw new ErrorValidacion("El porcentaje no es válido");
+    }
+    if (porcentaje === 0) throw new ErrorValidacion("El porcentaje no puede ser cero");
+
+    const snap = await adminDb.collection("catalogo").get();
+    const afectados = snap.docs.filter((doc) => {
+      const item = doc.data() as ItemCatalogo;
+      return (
+        (!filtro.rubro || item.rubro === filtro.rubro) &&
+        (!filtro.proveedor || item.proveedor === filtro.proveedor) &&
+        (!filtro.moneda || item.moneda === filtro.moneda)
+      );
+    });
+    if (afectados.length === 0) throw new ErrorValidacion("No hay ítems para actualizar");
+
+    const factor = 1 + porcentaje / 100;
+    for (let inicio = 0; inicio < afectados.length; inicio += 500) {
+      const batch = adminDb.batch();
+      for (const doc of afectados.slice(inicio, inicio + 500)) {
+        const item = doc.data() as ItemCatalogo;
+        const precioLista = redondearPrecio(item.precioLista * factor);
+        const precioFinalIva = redondearPrecio(item.precioFinalIva * factor);
+        batch.update(doc.ref, {
+          ...camposDerivados({ ...item, precioLista, precioFinalIva }),
+          actualizadoEn: FieldValue.serverTimestamp(),
+        });
+      }
+      await batch.commit();
+    }
+
+    return { ok: true, cantidad: afectados.length };
+  } catch (err) {
+    return { ok: false, error: mensajeError(err) };
+  }
 }
 
 export async function crearItemCatalogo(datos: DatosItemCatalogo): Promise<ResultadoCrearItem> {

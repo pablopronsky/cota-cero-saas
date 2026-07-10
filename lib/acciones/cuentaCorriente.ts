@@ -91,6 +91,20 @@ export async function confirmarPresupuesto(presupuestoId: string): Promise<Resul
         throw new ErrorValidacion("Este presupuesto ya tiene una confirmación registrada");
       }
 
+      const confirmadasDeLaObra = await tx.get(
+        adminDb
+          .collection("presupuestos")
+          .where("obraCodigo", "==", presupuesto.obraCodigo)
+          .where("estado", "==", "Confirmado"),
+      );
+      const otraConfirmada = confirmadasDeLaObra.docs.find((doc) => doc.id !== presupuestoId);
+      if (otraConfirmada) {
+        const version = (otraConfirmada.data() as Presupuesto).version;
+        throw new ErrorValidacion(
+          `Esta obra ya tiene la versión ${version} confirmada. Anulá esa confirmación antes de confirmar otra versión.`,
+        );
+      }
+
       const clienteRef = adminDb.collection("clientes").doc(presupuesto.clienteId);
       const clienteSnap = await tx.get(clienteRef);
       if (!clienteSnap.exists) throw new ErrorValidacion("Cliente no encontrado");

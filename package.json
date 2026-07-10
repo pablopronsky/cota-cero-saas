@@ -14,7 +14,8 @@
     "import:historial": "tsx scripts/import/import-historial.ts",
     "import:movimientos": "tsx scripts/import/import-movimientos.ts",
     "reconciliar": "tsx scripts/reconciliar.ts",
-    "test": "vitest run"
+    "test": "vitest run --exclude **/*.integration.test.ts",
+    "test:integracion": "firebase emulators:exec --only firestore \"vitest run lib/acciones/cuentaCorriente.integration.test.ts\""
   },
   "dependencies": {
     "@react-pdf/renderer": "^4.5.1",

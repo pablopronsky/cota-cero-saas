@@ -6,11 +6,11 @@ import { useRouter } from "next/navigation";
 import { doc, onSnapshot, type Timestamp } from "firebase/firestore";
 import { toast } from "sonner";
 import { db } from "@/lib/firebase/client";
-import { puedeEditarse, puedeDuplicarse, puedeConfirmarse, puedeAnularse } from "@/lib/reglas/validaciones";
+import { puedeEditarse, puedeDuplicarse, puedeConfirmarse, puedeAnularse, telefonoValido } from "@/lib/reglas/validaciones";
 import { gruposIncluidos } from "@/lib/reglas/totales";
 import { confirmarPresupuesto, anularConfirmacion } from "@/lib/acciones/cuentaCorriente";
 import type { GrupoContable, ModalidadPresupuesto, Presupuesto } from "@/lib/tipos";
-import { ArrowLeft, Ban, CheckCheck, Copy, FileDown, SquarePen } from "lucide-react";
+import { ArrowLeft, Ban, CheckCheck, Copy, FileDown, MessageCircle, SquarePen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -56,6 +56,7 @@ export function DetallePresupuesto({ id }: { id: string }) {
   const [dialogDuplicar, setDialogDuplicar] = useState(false);
   const [dialogAnular, setDialogAnular] = useState(false);
   const [generandoPdf, setGenerandoPdf] = useState(false);
+  const [enviandoWhatsApp, setEnviandoWhatsApp] = useState(false);
   const [confirmando, setConfirmando] = useState(false);
 
   useEffect(() => {
@@ -110,6 +111,36 @@ export function DetallePresupuesto({ id }: { id: string }) {
     }
   }
 
+  const telefonoNormalizado = presupuesto.telefono.replace(/\D/g, "");
+  const telefonoWhatsApp = telefonoNormalizado.startsWith("54")
+    ? telefonoNormalizado
+    : `54${telefonoNormalizado}`;
+  const telefonoWhatsAppValido = telefonoValido(presupuesto.telefono);
+  const presupuestoWhatsApp = presupuesto;
+
+  async function enviarPorWhatsApp() {
+    setEnviandoWhatsApp(true);
+    try {
+      const res = await fetch(`/api/pdf/presupuesto/${id}`, { method: "POST" });
+      const datos = await res.json();
+      if (!res.ok || !datos.ok) {
+        toast.error(datos.error ?? "No se pudo generar el PDF");
+        return;
+      }
+      const mensaje = `Hola, te compartimos el presupuesto ${presupuestoWhatsApp.obraCodigo} versión ${presupuestoWhatsApp.version}, por un total de ${fmtMoneda(presupuestoWhatsApp.total)}.\n\nPDF: ${datos.url}\n\nEl link vence en 15 minutos.`;
+      window.open(
+        `https://wa.me/${telefonoWhatsApp}?text=${encodeURIComponent(mensaje)}`,
+        "_blank",
+        "noopener,noreferrer",
+      );
+    } catch (err) {
+      console.error(err);
+      toast.error("No se pudo preparar el envío por WhatsApp");
+    } finally {
+      setEnviandoWhatsApp(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -143,6 +174,21 @@ export function DetallePresupuesto({ id }: { id: string }) {
                   ? "Descargar PDF"
                   : "Generar PDF"}
             </Button>
+          )}
+          {!presupuesto.esLegado && (
+            <div className="flex flex-col items-start gap-1">
+              <span title={telefonoWhatsAppValido ? undefined : "El teléfono debe tener entre 8 y 13 dígitos"}>
+                <Button
+                  variant="outline"
+                  onClick={enviarPorWhatsApp}
+                  disabled={!telefonoWhatsAppValido || enviandoWhatsApp}
+                >
+                  <MessageCircle data-icon="inline-start" />
+                  {enviandoWhatsApp ? "Preparando..." : "Enviar por WhatsApp"}
+                </Button>
+              </span>
+              <span className="text-xs text-muted-foreground">El link expira en 15 minutos.</span>
+            </div>
           )}
           {!presupuesto.esLegado && puedeEditarse(presupuesto.estado) && (
             <Button variant="outline" asChild>

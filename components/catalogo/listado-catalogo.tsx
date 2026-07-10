@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
-import { Package, Plus, Search, Settings } from "lucide-react";
+import { Package, Percent, Plus, Search, Settings } from "lucide-react";
 import { toast } from "sonner";
 import { db } from "@/lib/firebase/client";
 import { normalizar } from "@/lib/reglas/normalizar";
@@ -26,6 +26,7 @@ import { EstadoCatalogoBadge, VerificarBadge } from "@/components/estado-badge";
 import { PageHeader } from "@/components/page-header";
 import { ItemFormDialog } from "@/components/catalogo/item-form-dialog";
 import { ConfiguracionDialog } from "@/components/catalogo/configuracion-dialog";
+import { ActualizarPreciosDialog } from "@/components/catalogo/actualizar-precios-dialog";
 
 interface ItemConId extends ItemCatalogo {
   id: string;
@@ -39,6 +40,7 @@ export function ListadoCatalogo() {
   const [soloVerificacion, setSoloVerificacion] = useState(false);
   const [dialogNuevo, setDialogNuevo] = useState(false);
   const [dialogConfig, setDialogConfig] = useState(false);
+  const [dialogPrecios, setDialogPrecios] = useState(false);
   const [editando, setEditando] = useState<ItemConId | null>(null);
 
   useEffect(() => {
@@ -101,6 +103,10 @@ export function ListadoCatalogo() {
         }
         actions={
           <>
+            <Button variant="outline" onClick={() => setDialogPrecios(true)} disabled={!items?.length}>
+              <Percent data-icon="inline-start" />
+              Actualizar precios en masa
+            </Button>
             <Button variant="outline" onClick={() => setDialogConfig(true)}>
               <Settings data-icon="inline-start" />
               Configuración
@@ -277,6 +283,11 @@ export function ListadoCatalogo() {
         />
       )}
       <ConfiguracionDialog open={dialogConfig} onOpenChange={setDialogConfig} />
+      <ActualizarPreciosDialog
+        open={dialogPrecios}
+        onOpenChange={setDialogPrecios}
+        items={items ?? []}
+      />
     </div>
   );
 }

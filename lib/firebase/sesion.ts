@@ -1,6 +1,6 @@
 import "server-only";
 import { cookies } from "next/headers";
-import { adminAuth } from "@/lib/firebase/admin";
+import { adminAuth, adminDb } from "@/lib/firebase/admin";
 import { NOMBRE_COOKIE_SESION } from "@/lib/constantes";
 
 const DURACION_MS = 5 * 24 * 60 * 60 * 1000; // 5 días
@@ -41,6 +41,10 @@ export async function obtenerUsuarioSesion(): Promise<UsuarioSesion | null> {
     // dinámico este layout). Con 2-4 usuarios internos y cookies de 5 días,
     // no vale el costo de latencia en cada pantalla.
     const decoded = await adminAuth.verifySessionCookie(cookieSesion);
+    // Esta lectura extra por request permite aplicar bajas inmediatamente; con 2-4
+    // usuarios internos, el costo es aceptable y evita complejidad de caché.
+    const usuario = await adminDb.collection("usuarios").doc(decoded.uid).get();
+    if (!usuario.exists || usuario.data()?.activo === false) return null;
     return {
       uid: decoded.uid,
       email: decoded.email ?? "",

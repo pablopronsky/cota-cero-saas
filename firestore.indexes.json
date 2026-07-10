@@ -23,6 +23,14 @@
         { "fieldPath": "obraCodigo", "order": "ASCENDING" },
         { "fieldPath": "version", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "presupuestos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "obraCodigo", "order": "ASCENDING" },
+        { "fieldPath": "estado", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []
