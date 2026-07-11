@@ -18,6 +18,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { EstadoPresupuestoBadge, VerificarBadge } from "@/components/estado-badge";
 import { PanelComercial } from "@/components/comercial/panel-comercial";
+import { PanelPlanCobro } from "@/components/cobro/panel-plan-cobro";
 import {
   Table,
   TableBody,
@@ -278,6 +279,16 @@ export function DetallePresupuesto({ id }: { id: string }) {
         total={presupuesto.total}
         venceEl={presupuesto.venceEl as unknown as { toDate(): Date } | null}
       />
+
+      {presupuesto.estado === "Confirmado" && (
+        <PanelPlanCobro
+          modo="presupuesto"
+          obraCodigo={presupuesto.obraCodigo}
+          presupuestoId={id}
+          clienteNombre={presupuesto.clienteNombre}
+          total={presupuesto.total}
+        />
+      )}
 
       <Card>
         <CardHeader>

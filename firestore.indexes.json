@@ -39,6 +39,30 @@
         { "fieldPath": "estadoComercial", "order": "ASCENDING" },
         { "fieldPath": "proximoSeguimiento", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "cuotas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "estado", "order": "ASCENDING" },
+        { "fieldPath": "venceEl", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "cuotas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "obraCodigo", "order": "ASCENDING" },
+        { "fieldPath": "orden", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "cuotas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "clienteId", "order": "ASCENDING" },
+        { "fieldPath": "venceEl", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

@@ -16,7 +16,7 @@
     "reconciliar": "tsx scripts/reconciliar.ts",
     "backup": "tsx scripts/backup.ts",
     "test": "vitest run --exclude **/*.integration.test.ts",
-    "test:integracion": "firebase emulators:exec --only firestore \"vitest run --no-file-parallelism lib/acciones/cuentaCorriente.integration.test.ts lib/acciones/comercial.integration.test.ts\""
+    "test:integracion": "firebase emulators:exec --only firestore \"vitest run --no-file-parallelism lib/acciones/cuentaCorriente.integration.test.ts lib/acciones/comercial.integration.test.ts lib/acciones/cuotas.integration.test.ts\""
   },
   "dependencies": {
     "@react-pdf/renderer": "^4.5.1",
