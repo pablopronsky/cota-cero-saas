@@ -78,7 +78,7 @@ export default function LoginPage() {
         </div>
 
         <section className="flex items-center justify-center px-4 py-10 sm:px-8 md:px-12 lg:px-16">
-          <div className="w-full max-w-[440px]">
+          <div className="w-full max-w-[460px]">
             <div className="mb-7 flex justify-center sm:mb-9">
               <Image
                 src="/logo/cota_cero_logo_con_descriptor_outline.svg"
@@ -90,7 +90,7 @@ export default function LoginPage() {
               />
             </div>
 
-            <div className="rounded-[1.4rem] border border-white/80 bg-white/88 px-5 py-7 shadow-[0_24px_70px_-30px_rgba(31,31,31,0.35)] backdrop-blur-xl sm:px-9 sm:py-9">
+            <div className="rounded-[1.5rem] border border-white/80 bg-white/90 px-5 py-7 shadow-[0_28px_80px_-32px_rgba(31,31,31,0.38)] backdrop-blur-xl sm:px-10 sm:py-10">
               <div className="mb-7 text-center">
                 <div className="mb-4 flex items-center justify-center gap-3 text-[0.65rem] font-semibold tracking-[0.24em] text-cobre-oscuro">
                   <span className="h-px w-7 bg-cobre/55" />
@@ -129,7 +129,7 @@ export default function LoginPage() {
                       onChange={(e) => setEmail(e.target.value)}
                       aria-invalid={Boolean(error)}
                       aria-describedby={error ? "login-error" : undefined}
-                      className="h-12 rounded-xl border-piedra/70 bg-white/65 pl-11 pr-4 shadow-none transition-[border-color,box-shadow,background-color] placeholder:text-muted-foreground/65 hover:bg-white focus-visible:bg-white"
+                      className="h-12 rounded-xl border-piedra/70 bg-white pl-11 pr-4 caret-cobre-oscuro shadow-none transition-[border-color,box-shadow,background-color] placeholder:text-muted-foreground/65 hover:bg-white focus-visible:border-cobre focus-visible:bg-white focus-visible:ring-4 focus-visible:ring-cobre/15 [&:-webkit-autofill]:shadow-[inset_0_0_0_1000px_#fff] [&:-webkit-autofill]:[-webkit-text-fill-color:#1f1f1f]"
                     />
                   </div>
                 </div>
@@ -153,7 +153,7 @@ export default function LoginPage() {
                       onChange={(e) => setPassword(e.target.value)}
                       aria-invalid={Boolean(error)}
                       aria-describedby={error ? "login-error" : undefined}
-                      className="h-12 rounded-xl border-piedra/70 bg-white/65 pl-11 pr-12 shadow-none transition-[border-color,box-shadow,background-color] hover:bg-white focus-visible:bg-white"
+                      className="h-12 rounded-xl border-piedra/70 bg-white pl-11 pr-12 caret-cobre-oscuro shadow-none transition-[border-color,box-shadow,background-color] hover:bg-white focus-visible:border-cobre focus-visible:bg-white focus-visible:ring-4 focus-visible:ring-cobre/15 [&:-webkit-autofill]:shadow-[inset_0_0_0_1000px_#fff] [&:-webkit-autofill]:[-webkit-text-fill-color:#1f1f1f]"
                     />
                     <button
                       type="button"
@@ -200,11 +200,11 @@ export default function LoginPage() {
                   )}
                 </Button>
               </form>
-            </div>
 
-            <div className="mt-6 flex items-center justify-center gap-2 text-xs text-muted-foreground">
-              <ShieldCheck aria-hidden="true" className="size-4 text-cobre-oscuro/75" />
-              Acceso exclusivo para el equipo de COTA CERO
+              <div className="mt-6 flex items-center justify-center gap-2 border-t border-border/70 pt-5 text-xs text-muted-foreground">
+                <ShieldCheck aria-hidden="true" className="size-4 text-cobre-oscuro/80" />
+                Acceso exclusivo para el equipo de COTA CERO
+              </div>
             </div>
           </div>
         </section>

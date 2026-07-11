@@ -7,6 +7,7 @@ import {
   Eye,
   FileWarning,
   MessageSquarePlus,
+  Plus,
   Wallet,
 } from "lucide-react";
 import { obtenerDatosHoy } from "@/lib/consultas/hoy";
@@ -21,12 +22,23 @@ const fmtMoneda = (n: number) =>
 const fmtDias = (f: Date, hoy: Date) =>
   Math.round((f.getTime() - hoy.getTime()) / (24 * 60 * 60 * 1000));
 
-function IndicadorMes({ label, valor }: { label: string; valor: string }) {
+function IndicadorMes({
+  label,
+  valor,
+  detalle,
+  destacado = false,
+}: {
+  label: string;
+  valor: string;
+  detalle?: string;
+  destacado?: boolean;
+}) {
   return (
-    <Card size="sm">
-      <CardContent className="py-4">
-        <p className="text-xs text-muted-foreground">{label}</p>
-        <p className="tnum mt-1 text-xl font-semibold tracking-tight">{valor}</p>
+    <Card size="sm" className={destacado ? "border-t-4 border-t-cobre" : "border-t-4 border-t-grafito/10"}>
+      <CardContent className="px-5 py-5">
+        <p className="text-[13px] font-medium text-muted-foreground">{label}</p>
+        <p className="tnum mt-2 text-2xl font-semibold tracking-[-0.035em]">{valor}</p>
+        {detalle && <p className="mt-1 text-xs text-muted-foreground">{detalle}</p>}
       </CardContent>
     </Card>
   );
@@ -53,14 +65,14 @@ function Bandeja({
           {title}
         </CardTitle>
         {count > 0 && (
-          <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-muted px-1.5 text-xs font-medium text-muted-foreground">
+          <span className="inline-flex size-6 items-center justify-center rounded-full bg-cobre-oscuro text-xs font-semibold text-white">
             {count}
           </span>
         )}
       </CardHeader>
-      <CardContent className="space-y-0.5">
+      <CardContent className="space-y-1 py-1">
         {count === 0 ? (
-          <p className="flex items-center gap-2 px-2 py-3 text-sm text-muted-foreground">
+          <p className="flex items-center gap-2 rounded-lg bg-hueso/50 px-3 py-3 text-sm text-muted-foreground">
             <CircleCheck className="size-4 text-exito" />
             {emptyTitle}
           </p>
@@ -86,7 +98,7 @@ function ItemFila({
   acciones?: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-2 rounded-lg px-2 py-2 text-sm transition-colors hover:bg-accent/60 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+    <div className="flex flex-col gap-3 rounded-lg px-3 py-3 text-sm transition-colors hover:bg-accent/60 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
       <Link href={href} className="min-w-0 flex-1">
         <span className="block truncate font-medium">{titulo}</span>
         <span className="mt-0.5 flex flex-wrap items-center gap-x-3 text-xs text-muted-foreground">
@@ -186,15 +198,26 @@ export default async function HoyPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Hoy" description="Lo que necesita atención primero." />
+      <PageHeader
+        title="Hoy"
+        description="Lo que necesita atención primero."
+        actions={(
+          <Button asChild>
+            <Link href="/presupuestos/nuevo">
+              <Plus data-icon="inline-start" /> Nuevo presupuesto
+            </Link>
+          </Button>
+        )}
+      />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <IndicadorMes label="Emitido este mes" valor={fmtMoneda(indicadores.emitido)} />
-        <IndicadorMes label="Confirmado este mes" valor={fmtMoneda(indicadores.confirmado)} />
-        <IndicadorMes label="Cobrado este mes" valor={fmtMoneda(indicadores.cobrado)} />
+        <IndicadorMes label="Emitido este mes" valor={fmtMoneda(indicadores.emitido)} detalle="Ofertas generadas" />
+        <IndicadorMes label="Confirmado este mes" valor={fmtMoneda(indicadores.confirmado)} detalle="Trabajo ganado" />
+        <IndicadorMes label="Cobrado este mes" valor={fmtMoneda(indicadores.cobrado)} detalle="Pagos registrados" destacado />
         <IndicadorMes
           label="Conversión del mes"
           valor={indicadores.conversion === null ? "—" : `${Math.round(indicadores.conversion * 100)}%`}
+          detalle={indicadores.conversion === null ? "Sin cierres suficientes" : "Sobre oportunidades cerradas"}
         />
       </div>
 

@@ -10,12 +10,19 @@ import { puedeEditarse, puedeDuplicarse, puedeConfirmarse, puedeAnularse, telefo
 import { gruposIncluidos } from "@/lib/reglas/totales";
 import { confirmarPresupuesto, anularConfirmacion } from "@/lib/acciones/cuentaCorriente";
 import type { GrupoContable, ModalidadPresupuesto, Presupuesto } from "@/lib/tipos";
-import { ArrowLeft, Ban, CheckCheck, Copy, FileDown, MessageCircle, SquarePen } from "lucide-react";
+import { ArrowLeft, Ban, CheckCheck, Copy, Ellipsis, FileDown, MessageCircle, SquarePen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { EstadoPresupuestoBadge, VerificarBadge } from "@/components/estado-badge";
 import { PanelComercial } from "@/components/comercial/panel-comercial";
 import { PanelPlanCobro } from "@/components/cobro/panel-plan-cobro";
@@ -170,59 +177,67 @@ export function DetallePresupuesto({
             <EstadoPresupuestoBadge estado={presupuesto.estado} />
             {presupuesto.esLegado && <Badge variant="outline">Legado</Badge>}
           </div>
-          <p className="mt-1 text-sm text-muted-foreground">{presupuesto.clienteNombre}</p>
+          <p className="mt-1 text-sm font-medium text-muted-foreground">{presupuesto.clienteNombre}</p>
+          <div className="mt-4 inline-flex items-baseline gap-3 rounded-xl border border-border/80 bg-card px-4 py-3 shadow-sm">
+            <span className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">Total</span>
+            <span className="tnum font-mono text-xl font-bold text-grafito">{fmtMoneda(presupuesto.total)}</span>
+          </div>
         </div>
-        <div className="flex shrink-0 flex-wrap items-start gap-2">
-          {!presupuesto.esLegado && (
-            <Button variant="outline" onClick={generarPdf} disabled={generandoPdf}>
-              <FileDown data-icon="inline-start" />
-              {generandoPdf
-                ? "Generando..."
-                : presupuesto.pdfPath
-                  ? "Descargar PDF"
-                  : "Generar PDF"}
-            </Button>
-          )}
-          {!presupuesto.esLegado && (
-            <div className="flex flex-col items-start gap-1">
-              <span title={telefonoWhatsAppValido ? undefined : "El teléfono debe tener entre 8 y 13 dígitos"}>
-                <Button
-                  variant="outline"
-                  onClick={enviarPorWhatsApp}
-                  disabled={!telefonoWhatsAppValido || enviandoWhatsApp}
-                >
-                  <MessageCircle data-icon="inline-start" />
-                  {enviandoWhatsApp ? "Preparando..." : "Enviar por WhatsApp"}
-                </Button>
-              </span>
-              <span className="text-xs text-muted-foreground">El link expira en 15 minutos.</span>
-            </div>
-          )}
-          {!presupuesto.esLegado && puedeEditarse(presupuesto.estado) && (
-            <Button variant="outline" asChild>
-              <Link href={`/presupuestos/${id}/editar`}>
-                <SquarePen data-icon="inline-start" />
-                Editar
-              </Link>
-            </Button>
-          )}
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
           {!presupuesto.esLegado && puedeConfirmarse(presupuesto.estado) && (
             <Button onClick={confirmar} disabled={confirmando}>
               <CheckCheck data-icon="inline-start" />
-              {confirmando ? "Confirmando..." : "Confirmar"}
+              {confirmando ? "Confirmando..." : "Confirmar presupuesto"}
             </Button>
           )}
-          {!presupuesto.esLegado && puedeAnularse(presupuesto.estado) && (
-            <Button variant="destructive" onClick={() => setDialogAnular(true)}>
-              <Ban data-icon="inline-start" />
-              Anular
+          {!presupuesto.esLegado && (
+            <span title={telefonoWhatsAppValido ? "El enlace generado expira en 15 minutos" : "El teléfono debe tener entre 8 y 13 dígitos"}>
+              <Button
+                variant="outline"
+                onClick={enviarPorWhatsApp}
+                disabled={!telefonoWhatsAppValido || enviandoWhatsApp}
+              >
+                <MessageCircle data-icon="inline-start" />
+                {enviandoWhatsApp ? "Preparando..." : "Enviar"}
+              </Button>
+            </span>
+          )}
+          {!presupuesto.esLegado && (
+            <Button variant="outline" onClick={generarPdf} disabled={generandoPdf}>
+              <FileDown data-icon="inline-start" />
+              {generandoPdf ? "Generando..." : "PDF"}
             </Button>
           )}
-          {puedeDuplicarse(presupuesto.estado) && (
-            <Button variant={puedeConfirmarse(presupuesto.estado) ? "outline" : "default"} onClick={() => setDialogDuplicar(true)}>
-              <Copy data-icon="inline-start" />
-              Duplicar
-            </Button>
+          {(puedeEditarse(presupuesto.estado) || puedeDuplicarse(presupuesto.estado) || puedeAnularse(presupuesto.estado)) && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" aria-label="Más acciones">
+                  <Ellipsis />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-52">
+                {!presupuesto.esLegado && puedeEditarse(presupuesto.estado) && (
+                  <DropdownMenuItem asChild>
+                    <Link href={`/presupuestos/${id}/editar`}>
+                      <SquarePen /> Editar presupuesto
+                    </Link>
+                  </DropdownMenuItem>
+                )}
+                {puedeDuplicarse(presupuesto.estado) && (
+                  <DropdownMenuItem onSelect={() => setDialogDuplicar(true)}>
+                    <Copy /> Duplicar
+                  </DropdownMenuItem>
+                )}
+                {!presupuesto.esLegado && puedeAnularse(presupuesto.estado) && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem variant="destructive" onSelect={() => setDialogAnular(true)}>
+                      <Ban /> Anular confirmación
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
         </div>
       </div>

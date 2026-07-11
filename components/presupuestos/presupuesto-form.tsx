@@ -22,7 +22,7 @@ import type {
   Presupuesto,
 } from "@/lib/tipos";
 import type { Timestamp } from "firebase/firestore";
-import { Plus, RefreshCw, X } from "lucide-react";
+import { ChevronDown, PackagePlus, Plus, RefreshCw, UserPlus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -177,6 +177,16 @@ export function PresupuestoForm({ modo = "crear", presupuestoId, obraCodigoDesti
   const [direccionObra, setDireccionObra] = useState(prefill?.direccionObra ?? "");
   const [tipoObra, setTipoObra] = useState(prefill?.tipoObra ?? "");
   const [vendedor, setVendedor] = useState(prefill?.vendedor ?? "");
+  const [datosTecnicosAbiertos, setDatosTecnicosAbiertos] = useState(
+    Boolean(
+      prefill?.tipoObra ||
+      prefill?.vendedor ||
+      prefill?.m2Relevados ||
+      prefill?.subpiso ||
+      prefill?.nivelSubpiso ||
+      prefill?.observacionesRiesgos,
+    ),
+  );
   const hoy = useMemo(() => new Date().toISOString().slice(0, 10), []);
   const [fechaVisita, setFechaVisita] = useState(prefill?.fechaVisita ?? hoy);
   const [fechaEmision, setFechaEmision] = useState(prefill?.fechaEmision ?? hoy);
@@ -428,7 +438,10 @@ export function PresupuestoForm({ modo = "crear", presupuestoId, obraCodigoDesti
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 pb-4">
-      <h1 className="text-2xl font-semibold tracking-tight">{titulo}</h1>
+      <div>
+        <p className="text-xs font-semibold tracking-[0.16em] text-cobre-oscuro uppercase">Presupuestos</p>
+        <h1 className="mt-1 text-[1.75rem] leading-tight font-semibold tracking-[-0.035em]">{titulo}</h1>
+      </div>
       {error && (
         <p role="alert" className="rounded-lg bg-destructive/8 px-3 py-2 text-sm text-destructive">
           {error}
@@ -436,15 +449,15 @@ export function PresupuestoForm({ modo = "crear", presupuestoId, obraCodigoDesti
       )}
 
       <Card>
-        <CardHeader>
-          <CardTitle>Cliente y obra</CardTitle>
+        <CardHeader className="border-b [.border-b]:pb-4">
+          <CardTitle className="text-lg font-semibold">Cliente y obra</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label>Cliente *</Label>
               {clienteSeleccionado ? (
-                <div className="flex items-center justify-between rounded-lg border border-input px-2.5 py-1">
+                <div className="flex min-h-10 items-center justify-between rounded-lg border border-input bg-card px-3 py-2">
                   <div>
                     <p className="text-sm">{clienteSeleccionado.nombre}</p>
                     <p className="font-mono text-xs text-muted-foreground">
@@ -475,7 +488,8 @@ export function PresupuestoForm({ modo = "crear", presupuestoId, obraCodigoDesti
                     />
                   </div>
                   <Button type="button" variant="outline" onClick={() => setDialogClienteRapido(true)}>
-                    Nuevo
+                    <UserPlus data-icon="inline-start" />
+                    Crear cliente
                   </Button>
                 </div>
               )}
@@ -498,14 +512,6 @@ export function PresupuestoForm({ modo = "crear", presupuestoId, obraCodigoDesti
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="tipoObra">Tipo de obra</Label>
-              <Input id="tipoObra" value={tipoObra} onChange={(e) => setTipoObra(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="vendedor">Vendedor</Label>
-              <Input id="vendedor" value={vendedor} onChange={(e) => setVendedor(e.target.value)} />
-            </div>
-            <div className="space-y-2">
               <Label htmlFor="fechaVisita">Fecha de visita</Label>
               <Input
                 id="fechaVisita"
@@ -523,45 +529,50 @@ export function PresupuestoForm({ modo = "crear", presupuestoId, obraCodigoDesti
                 onChange={(e) => setFechaEmision(e.target.value)}
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="m2Relevados">m² relevados</Label>
-              <Input
-                id="m2Relevados"
-                type="number"
-                step="0.01"
-                min="0"
-                value={m2Relevados}
-                onChange={(e) => setM2Relevados(Number(e.target.value))}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="subpiso">Subpiso</Label>
-              <Input id="subpiso" value={subpiso} onChange={(e) => setSubpiso(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="nivelSubpiso">Nivel de subpiso</Label>
-              <Input
-                id="nivelSubpiso"
-                value={nivelSubpiso}
-                onChange={(e) => setNivelSubpiso(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2 sm:col-span-2">
-              <Label htmlFor="observacionesRiesgos">Observaciones / riesgos</Label>
-              <Textarea
-                id="observacionesRiesgos"
-                rows={2}
-                value={observacionesRiesgos}
-                onChange={(e) => setObservacionesRiesgos(e.target.value)}
-              />
-            </div>
           </div>
+
+          <details
+            className="group rounded-xl border border-border bg-hueso/35"
+            open={datosTecnicosAbiertos}
+            onToggle={(evento) => setDatosTecnicosAbiertos(evento.currentTarget.open)}
+          >
+            <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-sm font-semibold marker:content-none">
+              Más datos técnicos de la obra
+              <ChevronDown className="size-4 text-muted-foreground transition-transform group-open:rotate-180" />
+            </summary>
+            <div className="grid gap-4 border-t p-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="tipoObra">Tipo de obra</Label>
+                <Input id="tipoObra" value={tipoObra} onChange={(e) => setTipoObra(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="vendedor">Vendedor</Label>
+                <Input id="vendedor" value={vendedor} onChange={(e) => setVendedor(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="m2Relevados">m² relevados</Label>
+                <Input id="m2Relevados" type="number" step="0.01" min="0" value={m2Relevados} onChange={(e) => setM2Relevados(Number(e.target.value))} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="subpiso">Subpiso</Label>
+                <Input id="subpiso" value={subpiso} onChange={(e) => setSubpiso(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="nivelSubpiso">Nivel de subpiso</Label>
+                <Input id="nivelSubpiso" value={nivelSubpiso} onChange={(e) => setNivelSubpiso(e.target.value)} />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="observacionesRiesgos">Observaciones / riesgos</Label>
+                <Textarea id="observacionesRiesgos" rows={3} value={observacionesRiesgos} onChange={(e) => setObservacionesRiesgos(e.target.value)} />
+              </div>
+            </div>
+          </details>
         </CardContent>
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Modalidad</CardTitle>
+        <CardHeader className="border-b [.border-b]:pb-4">
+          <CardTitle className="text-lg font-semibold">Modalidad</CardTitle>
         </CardHeader>
         <CardContent>
           <NativeSelect
@@ -578,8 +589,8 @@ export function PresupuestoForm({ modo = "crear", presupuestoId, obraCodigoDesti
       </Card>
 
       <Card>
-        <CardHeader className="flex items-center justify-between">
-          <CardTitle>Ítems</CardTitle>
+        <CardHeader className="flex items-center justify-between border-b [.border-b]:pb-4">
+          <CardTitle className="text-lg font-semibold">Ítems</CardTitle>
           {modo === "duplicar" && (
             <Button type="button" variant="outline" size="sm" onClick={actualizarPreciosDesdeCatalogo}>
               <RefreshCw data-icon="inline-start" />
@@ -679,8 +690,12 @@ export function PresupuestoForm({ modo = "crear", presupuestoId, obraCodigoDesti
               <TableBody>
                 {itemsConSubtotal.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground">
-                      Sin ítems todavía.
+                  <TableCell colSpan={6} className="py-10 text-center text-muted-foreground">
+                    <span className="mx-auto flex size-10 items-center justify-center rounded-full bg-muted">
+                      <PackagePlus className="size-5" />
+                    </span>
+                    <span className="mt-3 block font-medium text-foreground">Todavía no agregaste ítems</span>
+                    <span className="mt-1 block text-xs">Buscá en el catálogo o cargá un ítem manual.</span>
                     </TableCell>
                   </TableRow>
                 )}
@@ -763,8 +778,8 @@ export function PresupuestoForm({ modo = "crear", presupuestoId, obraCodigoDesti
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Condiciones</CardTitle>
+        <CardHeader className="border-b [.border-b]:pb-4">
+          <CardTitle className="text-lg font-semibold">Condiciones</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -798,7 +813,7 @@ export function PresupuestoForm({ modo = "crear", presupuestoId, obraCodigoDesti
       </Card>
 
       {/* Barra fija: total en vivo + guardar, siempre a la vista mientras se carga el presupuesto. */}
-      <div className="sticky bottom-4 z-10 flex flex-wrap items-center justify-between gap-4 rounded-xl bg-grafito px-5 py-3 text-hueso shadow-lg shadow-grafito/25">
+      <div className="sticky bottom-4 z-10 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-white/10 bg-grafito px-5 py-4 text-hueso shadow-[0_18px_45px_-18px_rgba(31,31,31,0.7)]">
         <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1">
           <div className="text-xs text-hueso/60">
             Materiales + accesorios{" "}
@@ -824,12 +839,12 @@ export function PresupuestoForm({ modo = "crear", presupuestoId, obraCodigoDesti
           </div>
           <div className="flex items-baseline gap-2">
             <span className="text-xs font-semibold tracking-wide text-hueso/80 uppercase">Total</span>
-            <span className="tnum font-mono text-lg font-bold text-cobre">
+            <span className="tnum font-mono text-xl font-bold text-cobre">
               {fmtMoneda(totales.total)}
             </span>
           </div>
         </div>
-        <Button type="submit" disabled={guardando} className="bg-cobre text-white hover:bg-cobre/85">
+        <Button type="submit" disabled={guardando} className="bg-cobre px-5 text-white hover:bg-cobre/85">
           {guardando ? "Guardando..." : "Guardar presupuesto"}
         </Button>
       </div>

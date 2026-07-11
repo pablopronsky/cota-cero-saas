@@ -150,8 +150,8 @@ export function PanelComercial({
 
   return (
     <Card>
-      <CardHeader className="flex-row flex-wrap items-center justify-between gap-3">
-        <CardTitle>Comercial</CardTitle>
+      <CardHeader className="flex-row flex-wrap items-center justify-between gap-3 border-b [.border-b]:pb-4">
+        <CardTitle className="text-lg font-semibold">Comercial</CardTitle>
         <div className="flex flex-wrap items-center gap-2">
           <EstadoComercialBadge estado={obra.estadoComercial} />
           <VigenciaChip venceEl={venceEl} estadoComercial={obra.estadoComercial} />
@@ -205,7 +205,7 @@ export function PanelComercial({
         <div className="space-y-2 border-t pt-4">
           <p className="text-sm font-medium">Historial de contactos</p>
           {(obra.contactos ?? []).length === 0 ? (
-            <p className="text-sm text-muted-foreground">Todavía no hay contactos registrados.</p>
+            <p className="rounded-lg bg-hueso/50 px-3 py-3 text-sm text-muted-foreground">Todavía no hay contactos registrados.</p>
           ) : (
             <ul className="space-y-2">
               {[...(obra.contactos ?? [])].reverse().map((contacto, index) => (

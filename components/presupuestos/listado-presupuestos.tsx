@@ -113,33 +113,33 @@ export function ListadoPresupuestos() {
         }
       />
 
-      <div className="flex flex-wrap gap-2">
-        <div className="relative w-full max-w-sm">
-          <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+      <div className="grid gap-3 md:grid-cols-[minmax(280px,1fr)_180px_220px_150px]">
+        <div className="relative w-full">
+          <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Buscar por cliente u obra..."
+            placeholder="Buscar cliente o código de obra..."
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
-            className="bg-card pl-8"
+            className="bg-card pl-10"
           />
         </div>
-        <NativeSelect value={filtroEstado} onChange={(e) => setFiltroEstado(e.target.value)}>
-          <option value="">Todos los estados</option>
+        <NativeSelect aria-label="Estado documental" value={filtroEstado} onChange={(e) => setFiltroEstado(e.target.value)}>
+          <option value="">Documental: todos</option>
           <option value="Emitido">Emitido</option>
           <option value="Confirmado">Confirmado</option>
           <option value="Anulado">Anulado</option>
           <option value="Superado">Superado</option>
         </NativeSelect>
-        <NativeSelect value={filtroComercial} onChange={(e) => setFiltroComercial(e.target.value)}>
-          <option value="">Todos los estados comerciales</option>
+        <NativeSelect aria-label="Estado comercial" value={filtroComercial} onChange={(e) => setFiltroComercial(e.target.value)}>
+          <option value="">Comercial: todos</option>
           <option value="PendienteEnvio">Pendiente de envío</option>
           <option value="Enviado">Enviado</option>
           <option value="EnNegociacion">En negociación</option>
           <option value="Ganado">Ganado</option>
           <option value="Perdido">Perdido</option>
         </NativeSelect>
-        <NativeSelect value={filtroAnio} onChange={(e) => setFiltroAnio(e.target.value)}>
-          <option value="">Todos los años</option>
+        <NativeSelect aria-label="Año" value={filtroAnio} onChange={(e) => setFiltroAnio(e.target.value)}>
+          <option value="">Año: todos</option>
           {anios.map((a) => (
             <option key={a} value={a}>
               {a}
@@ -181,39 +181,44 @@ export function ListadoPresupuestos() {
 
       <div className="space-y-3">
         {grupos.map((g) => (
-          <Card key={g.obraCodigo} size="sm">
-            <CardHeader className="border-b [.border-b]:pb-3">
-              <CardTitle className="flex items-baseline justify-between gap-4 text-sm">
-                <span className="font-mono font-semibold tracking-tight text-cobre-oscuro">
-                  {g.obraCodigo}
+          <Card key={g.obraCodigo} size="sm" className="overflow-hidden">
+            <CardHeader className="border-b bg-hueso/45 px-5 [.border-b]:pb-4">
+              <CardTitle className="flex items-center justify-between gap-4 text-sm">
+                <span className="min-w-0">
+                  <span className="block font-mono font-semibold tracking-tight text-cobre-oscuro">
+                    {g.obraCodigo}
+                  </span>
+                  <span className="mt-0.5 block truncate font-sans font-medium text-foreground">
+                    {g.clienteNombre}
+                  </span>
                 </span>
-                <span className="flex min-w-0 items-center gap-2">
-                  <span className="truncate font-sans font-normal text-muted-foreground">{g.clienteNombre}</span>
-                  <EstadoComercialBadge estado={g.estadoComercial} />
-                </span>
+                <EstadoComercialBadge estado={g.estadoComercial} />
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-0.5">
+            <CardContent className="divide-y px-0">
               {g.versiones.map((v) => (
                 <Link
                   key={v.id}
                   href={`/presupuestos/${v.id}`}
-                  className="group flex items-center gap-3 rounded-lg px-2 py-2 text-sm transition-colors hover:bg-accent/60"
+                  className="group grid min-h-12 items-center gap-3 px-5 py-3 text-sm transition-colors hover:bg-accent/60 md:grid-cols-[52px_minmax(150px,1fr)_130px_150px_150px]"
                 >
-                  <span className="inline-flex h-5 w-9 shrink-0 items-center justify-center rounded-md bg-muted font-mono text-xs font-medium text-muted-foreground">
-                    v{v.version}
-                  </span>
-                  {v.esLegado && (
-                    <span className="shrink-0 rounded-md border border-border px-1.5 py-0.5 text-[10px] tracking-wide text-muted-foreground uppercase">
-                      Legado
+                  <span className="flex items-center gap-1.5">
+                    <span className="inline-flex h-6 w-10 shrink-0 items-center justify-center rounded-md bg-muted font-mono text-xs font-semibold text-muted-foreground">
+                      v{v.version}
                     </span>
-                  )}
-                  <span className="flex-1 truncate text-muted-foreground">
+                    {v.esLegado && (
+                      <span className="shrink-0 rounded-md border border-border px-1.5 py-0.5 text-[10px] tracking-wide text-muted-foreground uppercase md:hidden">
+                        Legado
+                      </span>
+                    )}
+                  </span>
+                  <span className="truncate text-muted-foreground">
                     {MODALIDAD_LABEL[v.modalidad]}
+                    {v.esLegado && <span className="ml-2 hidden text-[10px] tracking-wide uppercase md:inline">Legado</span>}
                   </span>
                   <EstadoPresupuestoBadge estado={v.estado} />
                   <VigenciaChip venceEl={v.venceEl} estadoComercial={g.estadoComercial} />
-                  <span className="tnum w-32 text-right font-semibold">{fmtMoneda(v.total)}</span>
+                  <span className="tnum text-right font-semibold text-foreground">{fmtMoneda(v.total)}</span>
                 </Link>
               ))}
             </CardContent>
