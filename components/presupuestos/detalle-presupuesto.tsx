@@ -165,7 +165,7 @@ export function DetallePresupuesto({ id }: { id: string }) {
           </div>
           <p className="mt-1 text-sm text-muted-foreground">{presupuesto.clienteNombre}</p>
         </div>
-        <div className="flex shrink-0 flex-wrap items-center gap-2">
+        <div className="flex shrink-0 flex-wrap items-start gap-2">
           {!presupuesto.esLegado && (
             <Button variant="outline" onClick={generarPdf} disabled={generandoPdf}>
               <FileDown data-icon="inline-start" />
