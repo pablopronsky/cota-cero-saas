@@ -7,6 +7,7 @@ import { obtenerUsuarioSesion } from "@/lib/firebase/sesion";
 import { telefonoValido, puedeEditarse } from "@/lib/reglas/validaciones";
 import { clasificarGrupoContable } from "@/lib/reglas/clasificacion";
 import { calcularTotales } from "@/lib/reglas/totales";
+import { parseValidezDias } from "@/lib/reglas/vigencia";
 import type {
   Cliente,
   ConfigGeneral,
@@ -103,6 +104,15 @@ function fechaDesdeInput(valor: string): Date {
   return new Date(`${valor}T12:00:00`);
 }
 
+function calcularVencimiento(fechaEmision: Date, validez: string): Date | null {
+  const dias = parseValidezDias(validez);
+  if (dias === null) return null;
+
+  const venceEl = new Date(fechaEmision);
+  venceEl.setDate(venceEl.getDate() + dias);
+  return venceEl;
+}
+
 /** Arma el mapa catalogoId -> ItemCatalogo leyendo dentro de la transacción (falla si alguno ya no existe). */
 async function leerCatalogoDeItems(
   tx: FirebaseFirestore.Transaction,
@@ -176,22 +186,25 @@ function construirItems(
 
 /** Campos de cabecera/condiciones comunes a las tres escrituras (crear, nueva versión, editar). */
 function camposPresupuesto(datos: DatosPresupuesto) {
+  const fechaEmision = fechaDesdeInput(datos.fechaEmision);
+  const validez = datos.validez?.trim() ?? "";
   return {
     telefono: datos.telefono.trim(),
     direccionObra: datos.direccionObra?.trim() ?? "",
     tipoObra: datos.tipoObra?.trim() ?? "",
     vendedor: datos.vendedor?.trim() ?? "",
     fechaVisita: fechaDesdeInput(datos.fechaVisita),
-    fechaEmision: fechaDesdeInput(datos.fechaEmision),
+    fechaEmision,
     m2Relevados: datos.m2Relevados ?? 0,
     subpiso: datos.subpiso?.trim() ?? "",
     nivelSubpiso: datos.nivelSubpiso?.trim() ?? "",
     observacionesRiesgos: datos.observacionesRiesgos?.trim() ?? "",
     modalidad: datos.modalidad,
     formaPago: datos.formaPago?.trim() ?? "",
-    validez: datos.validez?.trim() ?? "",
+    validez,
     moneda: datos.moneda?.trim() ?? "Pesos",
     exclusiones: datos.exclusiones?.trim() ?? "",
+    venceEl: calcularVencimiento(fechaEmision, validez),
   };
 }
 
@@ -233,6 +246,12 @@ export async function crearPresupuesto(
         clienteId: datos.clienteId,
         clienteNombre: cliente.nombre,
         ultimaVersion: 1,
+        estadoComercial: "PendienteEnvio",
+        proximoSeguimiento: null,
+        motivoPerdida: null,
+        motivoPerdidaDetalle: "",
+        contactos: [],
+        actualizadoEn: FieldValue.serverTimestamp(),
       });
 
       const presupuestoRef = adminDb.collection("presupuestos").doc();

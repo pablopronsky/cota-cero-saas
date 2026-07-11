@@ -25,6 +25,7 @@ void cert;
 const db = getFirestore(app);
 
 const ahora = Timestamp.now();
+const venceEn15Dias = Timestamp.fromDate(new Date(ahora.toDate().getTime() + 15 * 24 * 60 * 60 * 1000));
 
 async function seed() {
   const batch = db.batch();
@@ -291,6 +292,12 @@ async function seed() {
     clienteId: "CLI-0001",
     clienteNombre: "Juan Pérez",
     ultimaVersion: 2,
+    estadoComercial: "Enviado" as const,
+    proximoSeguimiento: null,
+    motivoPerdida: null,
+    motivoPerdidaDetalle: "",
+    contactos: [],
+    actualizadoEn: ahora,
   });
 
   const itemsV1 = [
@@ -365,6 +372,7 @@ async function seed() {
     moneda: "ARS",
     exclusiones: "",
     estado: "Superado" as const,
+    venceEl: venceEn15Dias,
     tcUsdSnapshot: 1200,
     items: itemsV1,
     subtotalMateriales: subtotalMaterialesV1,
@@ -407,6 +415,7 @@ async function seed() {
     moneda: "ARS",
     exclusiones: "",
     estado: "Emitido" as const,
+    venceEl: venceEn15Dias,
     tcUsdSnapshot: 1200,
     items: itemsV2,
     subtotalMateriales: subtotalMaterialesV2,

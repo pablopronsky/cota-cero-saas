@@ -17,6 +17,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { EstadoPresupuestoBadge, VerificarBadge } from "@/components/estado-badge";
+import { PanelComercial } from "@/components/comercial/panel-comercial";
 import {
   Table,
   TableBody,
@@ -153,7 +154,7 @@ export function DetallePresupuesto({ id }: { id: string }) {
             Presupuestos
           </Link>
           <div className="mt-1 flex flex-wrap items-center gap-3">
-            <h1 className="font-mono text-2xl font-semibold tracking-tight text-cobre-oscuro">
+          <h1 className="font-mono text-2xl font-semibold tracking-tight text-cobre-oscuro">
               {presupuesto.obraCodigo}
               <span className="ml-2 text-base font-medium text-muted-foreground">
                 v{presupuesto.version}
@@ -269,6 +270,14 @@ export function DetallePresupuesto({ id }: { id: string }) {
           )}
         </CardContent>
       </Card>
+
+      <PanelComercial
+        obraCodigo={presupuesto.obraCodigo}
+        versionPresupuesto={presupuesto.version}
+        clienteNombre={presupuesto.clienteNombre}
+        total={presupuesto.total}
+        venceEl={presupuesto.venceEl as unknown as { toDate(): Date } | null}
+      />
 
       <Card>
         <CardHeader>

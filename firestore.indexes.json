@@ -31,6 +31,14 @@
         { "fieldPath": "obraCodigo", "order": "ASCENDING" },
         { "fieldPath": "estado", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "obras",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "estadoComercial", "order": "ASCENDING" },
+        { "fieldPath": "proximoSeguimiento", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

@@ -6,14 +6,15 @@ import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
 import { FileText, Plus, Search } from "lucide-react";
 import { db } from "@/lib/firebase/client";
 import { normalizar } from "@/lib/reglas/normalizar";
-import type { ModalidadPresupuesto, Presupuesto } from "@/lib/tipos";
+import type { ModalidadPresupuesto, Obra, Presupuesto } from "@/lib/tipos";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
-import { EstadoPresupuestoBadge } from "@/components/estado-badge";
+import { EstadoComercialBadge, EstadoPresupuestoBadge } from "@/components/estado-badge";
+import { VigenciaChip } from "@/components/comercial/vigencia-chip";
 import { PageHeader } from "@/components/page-header";
 
 interface PresupuestoConId extends Presupuesto {
@@ -30,8 +31,10 @@ const fmtMoneda = (n: number) => n.toLocaleString("es-AR", { style: "currency", 
 
 export function ListadoPresupuestos() {
   const [presupuestos, setPresupuestos] = useState<PresupuestoConId[] | null>(null);
+  const [obras, setObras] = useState<Record<string, Obra>>({});
   const [busqueda, setBusqueda] = useState("");
   const [filtroEstado, setFiltroEstado] = useState("");
+  const [filtroComercial, setFiltroComercial] = useState("");
   const [filtroAnio, setFiltroAnio] = useState("");
 
   useEffect(() => {
@@ -44,6 +47,12 @@ export function ListadoPresupuestos() {
     );
   }, []);
 
+  useEffect(() => {
+    return onSnapshot(collection(db, "obras"), (snap) => {
+      setObras(Object.fromEntries(snap.docs.map((d) => [d.id, d.data() as Obra])));
+    });
+  }, []);
+
   const anios = useMemo(() => {
     if (!presupuestos) return [];
     return [...new Set(presupuestos.map((p) => p.obraCodigo.split("-")[1]))].sort().reverse();
@@ -54,6 +63,7 @@ export function ListadoPresupuestos() {
     const termino = normalizar(busqueda.trim());
     const filtrados = presupuestos.filter((p) => {
       if (filtroEstado && p.estado !== filtroEstado) return false;
+      if (filtroComercial && obras[p.obraCodigo]?.estadoComercial !== filtroComercial) return false;
       if (filtroAnio && !p.obraCodigo.includes(`-${filtroAnio}-`)) return false;
       if (
         termino &&
@@ -76,12 +86,13 @@ export function ListadoPresupuestos() {
       .map(([obraCodigo, lista]) => ({
         obraCodigo,
         clienteNombre: lista[0].clienteNombre,
+        estadoComercial: obras[obraCodigo]?.estadoComercial,
         versiones: [...lista].sort((a, b) => b.version - a.version),
       }))
       .sort((a, b) => (a.obraCodigo < b.obraCodigo ? 1 : -1));
-  }, [presupuestos, busqueda, filtroEstado, filtroAnio]);
+  }, [presupuestos, obras, busqueda, filtroEstado, filtroComercial, filtroAnio]);
 
-  const hayFiltros = busqueda.trim() !== "" || filtroEstado !== "" || filtroAnio !== "";
+  const hayFiltros = busqueda.trim() !== "" || filtroEstado !== "" || filtroComercial !== "" || filtroAnio !== "";
 
   return (
     <div className="space-y-6">
@@ -118,6 +129,14 @@ export function ListadoPresupuestos() {
           <option value="Confirmado">Confirmado</option>
           <option value="Anulado">Anulado</option>
           <option value="Superado">Superado</option>
+        </NativeSelect>
+        <NativeSelect value={filtroComercial} onChange={(e) => setFiltroComercial(e.target.value)}>
+          <option value="">Todos los estados comerciales</option>
+          <option value="PendienteEnvio">Pendiente de envío</option>
+          <option value="Enviado">Enviado</option>
+          <option value="EnNegociacion">En negociación</option>
+          <option value="Ganado">Ganado</option>
+          <option value="Perdido">Perdido</option>
         </NativeSelect>
         <NativeSelect value={filtroAnio} onChange={(e) => setFiltroAnio(e.target.value)}>
           <option value="">Todos los años</option>
@@ -168,8 +187,9 @@ export function ListadoPresupuestos() {
                 <span className="font-mono font-semibold tracking-tight text-cobre-oscuro">
                   {g.obraCodigo}
                 </span>
-                <span className="truncate font-sans font-normal text-muted-foreground">
-                  {g.clienteNombre}
+                <span className="flex min-w-0 items-center gap-2">
+                  <span className="truncate font-sans font-normal text-muted-foreground">{g.clienteNombre}</span>
+                  <EstadoComercialBadge estado={g.estadoComercial} />
                 </span>
               </CardTitle>
             </CardHeader>
@@ -192,6 +212,7 @@ export function ListadoPresupuestos() {
                     {MODALIDAD_LABEL[v.modalidad]}
                   </span>
                   <EstadoPresupuestoBadge estado={v.estado} />
+                  <VigenciaChip venceEl={v.venceEl} estadoComercial={g.estadoComercial} />
                   <span className="tnum w-32 text-right font-semibold">{fmtMoneda(v.total)}</span>
                 </Link>
               ))}

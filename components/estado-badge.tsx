@@ -1,4 +1,10 @@
-import type { EstadoCatalogo, EstadoCliente, EstadoPresupuesto, TipoMovimiento } from "@/lib/tipos";
+import type {
+  EstadoCatalogo,
+  EstadoCliente,
+  EstadoComercial,
+  EstadoPresupuesto,
+  TipoMovimiento,
+} from "@/lib/tipos";
 
 import { cn } from "@/lib/utils";
 
@@ -43,6 +49,45 @@ const ESTADO_PRESUPUESTO_TONO: Record<EstadoPresupuesto, Tono> = {
 
 export function EstadoPresupuestoBadge({ estado }: { estado: EstadoPresupuesto }) {
   return <Pill tono={ESTADO_PRESUPUESTO_TONO[estado]}>{estado}</Pill>;
+}
+
+const ESTADO_COMERCIAL_LABEL: Record<EstadoComercial, string> = {
+  PendienteEnvio: "Pendiente de envío",
+  Enviado: "Enviado",
+  EnNegociacion: "En negociación",
+  Ganado: "Ganado",
+  Perdido: "Perdido",
+};
+
+const ESTADO_COMERCIAL_TONO: Record<EstadoComercial, Tono> = {
+  PendienteEnvio: "neutro",
+  Enviado: "cobre",
+  EnNegociacion: "cobre",
+  Ganado: "exito",
+  Perdido: "rojo",
+};
+
+/** Outline para distinguir el pipeline comercial del estado documental. */
+export function EstadoComercialBadge({ estado }: { estado?: EstadoComercial | null }) {
+  if (!estado) {
+    return (
+      <span className="inline-flex h-5 shrink-0 items-center rounded-full border border-dashed border-border px-2 text-xs font-medium whitespace-nowrap text-muted-foreground">
+        Sin migrar
+      </span>
+    );
+  }
+
+  const tono = ESTADO_COMERCIAL_TONO[estado];
+  return (
+    <span
+      className={cn(
+        "inline-flex h-5 shrink-0 items-center rounded-full border bg-transparent px-2 text-xs font-medium whitespace-nowrap",
+        TONO_CLASS[tono],
+      )}
+    >
+      {ESTADO_COMERCIAL_LABEL[estado]}
+    </span>
+  );
 }
 
 export function EstadoClienteBadge({ estado }: { estado: EstadoCliente }) {

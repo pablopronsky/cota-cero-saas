@@ -64,6 +64,41 @@ export interface Obra {
   clienteId: string;
   clienteNombre: string;
   ultimaVersion: number;
+  /** Pipeline comercial, independiente del estado documental; opcional solo hasta migrar obras existentes. */
+  estadoComercial?: EstadoComercial;
+  proximoSeguimiento?: Timestamp | null;
+  motivoPerdida?: MotivoPerdida | null;
+  motivoPerdidaDetalle?: string;
+  /** Historial breve de contactos, embebido como los ítems de presupuesto. */
+  contactos?: ContactoComercial[];
+  actualizadoEn?: Timestamp;
+}
+
+export type EstadoComercial =
+  | "PendienteEnvio"
+  | "Enviado"
+  | "EnNegociacion"
+  | "Ganado"
+  | "Perdido";
+
+export type MotivoPerdida =
+  | "precio"
+  | "plazo"
+  | "competidor"
+  | "alcance"
+  | "sin_respuesta"
+  | "otro";
+
+export type CanalContacto = "whatsapp" | "llamada" | "visita" | "email" | "otro";
+
+export interface ContactoComercial {
+  fechaHora: Timestamp;
+  canal: CanalContacto;
+  nota: string;
+  /** Email del usuario que registró el contacto. */
+  usuario: string;
+  /** Versión vigente al momento de registrar el contacto. */
+  versionPresupuesto: number;
 }
 
 export type ModalidadPresupuesto = "integrada" | "colocacion" | "materiales";
@@ -106,6 +141,8 @@ export interface Presupuesto {
   moneda: string;
   exclusiones: string;
   estado: EstadoPresupuesto;
+  /** Derivada de fechaEmision + validez; null si no se interpreta y opcional solo en datos previos a Fase A. */
+  venceEl?: Timestamp | null;
   tcUsdSnapshot: number;
   items: ItemPresupuesto[];
   subtotalMateriales: number;

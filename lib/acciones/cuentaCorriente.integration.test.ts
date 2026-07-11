@@ -66,6 +66,14 @@ describe("acciones de cuenta corriente", () => {
     });
     await limpiarFirestore();
     await adminDb.collection("clientes").doc("CLI-0001").set(clienteBase);
+    await adminDb.collection("obras").doc("COTA-2026-0001").set({
+      clienteId: "CLI-0001",
+      estadoComercial: "Enviado",
+      proximoSeguimiento: null,
+      motivoPerdida: null,
+      motivoPerdidaDetalle: "",
+      contactos: [],
+    });
   });
 
   it("confirma, registra el debe y supera las otras versiones emitidas", async () => {
@@ -77,6 +85,7 @@ describe("acciones de cuenta corriente", () => {
     expect((await adminDb.doc("clientes/CLI-0001").get()).data()?.saldo).toBe(1000);
     expect((await adminDb.doc("presupuestos/p1").get()).data()?.estado).toBe("Confirmado");
     expect((await adminDb.doc("presupuestos/p2").get()).data()?.estado).toBe("Superado");
+    expect((await adminDb.doc("obras/COTA-2026-0001").get()).data()?.estadoComercial).toBe("Ganado");
     expect(await movimientos()).toEqual([
       expect.objectContaining({ tipo: "CONFIRMACION_PRESUPUESTO", debe: 1000, haber: 0 }),
     ]);
