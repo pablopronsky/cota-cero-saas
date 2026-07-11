@@ -42,6 +42,9 @@ firebase-debug.log
 firestore-debug.log
 ui-debug.log
 
+# logs sueltos de dev/analisis
+analysis-*.log
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
