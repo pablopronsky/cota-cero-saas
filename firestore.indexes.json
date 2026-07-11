@@ -33,6 +33,14 @@
       ]
     },
     {
+      "collectionGroup": "presupuestos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "estado", "order": "ASCENDING" },
+        { "fieldPath": "venceEl", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "obras",
       "queryScope": "COLLECTION",
       "fields": [

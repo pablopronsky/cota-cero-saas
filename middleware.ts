@@ -15,7 +15,7 @@ export function middleware(request: NextRequest) {
 
   if (RUTAS_PUBLICAS.includes(pathname)) {
     if (tieneSesion) {
-      return NextResponse.redirect(new URL("/clientes", request.url));
+      return NextResponse.redirect(new URL("/hoy", request.url));
     }
     return NextResponse.next();
   }

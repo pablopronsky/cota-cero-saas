@@ -430,12 +430,177 @@ async function seed() {
     actualizadoEn: ahora,
   });
 
+  // --- Casos de borde para la pantalla "Hoy" (Fase C) ---
+  const hace2Dias = Timestamp.fromDate(new Date(ahora.toDate().getTime() - 2 * 24 * 60 * 60 * 1000));
+  const hace5Dias = Timestamp.fromDate(new Date(ahora.toDate().getTime() - 5 * 24 * 60 * 60 * 1000));
+  const hace1Dia = Timestamp.fromDate(new Date(ahora.toDate().getTime() - 1 * 24 * 60 * 60 * 1000));
+  const enTresDias = Timestamp.fromDate(new Date(ahora.toDate().getTime() + 3 * 24 * 60 * 60 * 1000));
+
+  // Obra con seguimiento atrasado + presupuesto por vencer.
+  const obraCodigo2 = "COTA-2026-0002";
+  batch.set(db.collection("obras").doc(obraCodigo2), {
+    anio: 2026,
+    numero: 2,
+    clienteId: "CLI-0002",
+    clienteNombre: "María Gómez",
+    ultimaVersion: 1,
+    estadoComercial: "EnNegociacion" as const,
+    proximoSeguimiento: hace2Dias,
+    motivoPerdida: null,
+    motivoPerdidaDetalle: "",
+    contactos: [],
+    actualizadoEn: ahora,
+  });
+
+  const itemsObra2 = [
+    {
+      catalogoId: catalogoIds[1],
+      codigo: "PIS-EUC-002",
+      nombre: "Piso Eucalipto Grand Nature",
+      rubro: "Pisos de madera",
+      unidad: "m2",
+      cantidad: 25,
+      precioUnitario: 45980,
+      subtotal: 1149500,
+      grupoContable: "materiales" as const,
+      esManual: false,
+      grupoContableExplicito: false,
+      requiereVerificacion: false,
+      orden: 1,
+    },
+  ];
+  const presupuesto2Ref = db.collection("presupuestos").doc();
+  batch.set(presupuesto2Ref, {
+    obraCodigo: obraCodigo2,
+    version: 1,
+    clienteId: "CLI-0002",
+    clienteNombre: "María Gómez",
+    telefono: "2215557890",
+    direccionObra: "Av. 7 N° 850",
+    tipoObra: "Vivienda",
+    vendedor: "Pablo",
+    fechaVisita: ahora,
+    fechaEmision: ahora,
+    m2Relevados: 25,
+    subpiso: "Contrapiso",
+    nivelSubpiso: "Nivelado",
+    observacionesRiesgos: "",
+    modalidad: "materiales" as const,
+    formaPago: "Contado",
+    validez: "5 días",
+    moneda: "ARS",
+    exclusiones: "",
+    estado: "Emitido" as const,
+    venceEl: enTresDias,
+    tcUsdSnapshot: 1200,
+    items: itemsObra2,
+    subtotalMateriales: 1149500,
+    subtotalManoObra: 0,
+    subtotalAccesorios: 0,
+    total: 1149500,
+    esLegado: false,
+    linkPdfLegado: "",
+    pdfPath: "",
+    creadoPor: "seed-script",
+    creadoEn: ahora,
+    actualizadoEn: ahora,
+  });
+
+  // Cuota vencida ligada al presupuesto de la obra 2 (planificación; no toca saldo).
+  batch.set(db.collection("cuotas").doc(), {
+    obraCodigo: obraCodigo2,
+    presupuestoId: presupuesto2Ref.id,
+    clienteId: "CLI-0002",
+    clienteNombre: "María Gómez",
+    concepto: "Anticipo 50%",
+    monto: 574750,
+    venceEl: hace1Dia,
+    estado: "Pendiente" as const,
+    movimientoId: null,
+    orden: 1,
+    notas: "",
+    creadoPor: "seed-script",
+    creadoEn: ahora,
+    actualizadoEn: ahora,
+  });
+
+  // Obra con presupuesto vencido y sin cierre comercial.
+  const obraCodigo3 = "COTA-2026-0003";
+  batch.set(db.collection("obras").doc(obraCodigo3), {
+    anio: 2026,
+    numero: 3,
+    clienteId: "CLI-0003",
+    clienteNombre: "Constructora Del Sur SA",
+    ultimaVersion: 1,
+    estadoComercial: "Enviado" as const,
+    proximoSeguimiento: null,
+    motivoPerdida: null,
+    motivoPerdidaDetalle: "",
+    contactos: [],
+    actualizadoEn: ahora,
+  });
+
+  const itemsObra3 = [
+    {
+      catalogoId: catalogoIds[2],
+      codigo: "DEC-IPE-003",
+      nombre: "Deck Ipe 1a calidad",
+      rubro: "Decks",
+      unidad: "m2",
+      cantidad: 80,
+      precioUnitario: 75020,
+      subtotal: 6001600,
+      grupoContable: "materiales" as const,
+      esManual: false,
+      grupoContableExplicito: false,
+      requiereVerificacion: false,
+      orden: 1,
+    },
+  ];
+  batch.set(db.collection("presupuestos").doc(), {
+    obraCodigo: obraCodigo3,
+    version: 1,
+    clienteId: "CLI-0003",
+    clienteNombre: "Constructora Del Sur SA",
+    telefono: "2214449876",
+    direccionObra: "Camino Centenario km 5",
+    tipoObra: "Comercial",
+    vendedor: "Pablo",
+    fechaVisita: hace5Dias,
+    fechaEmision: hace5Dias,
+    m2Relevados: 80,
+    subpiso: "Contrapiso",
+    nivelSubpiso: "Nivelado",
+    observacionesRiesgos: "",
+    modalidad: "materiales" as const,
+    formaPago: "Contado",
+    validez: "3 días",
+    moneda: "ARS",
+    exclusiones: "",
+    estado: "Emitido" as const,
+    venceEl: hace2Dias,
+    tcUsdSnapshot: 1200,
+    items: itemsObra3,
+    subtotalMateriales: 6001600,
+    subtotalManoObra: 0,
+    subtotalAccesorios: 0,
+    total: 6001600,
+    esLegado: false,
+    linkPdfLegado: "",
+    pdfPath: "",
+    creadoPor: "seed-script",
+    creadoEn: hace5Dias,
+    actualizadoEn: hace5Dias,
+  });
+
+  batch.set(db.collection("contadores").doc("obras-2026"), { ultimo: 3 });
+
   await batch.commit();
 
   console.log("Seed completo:");
   console.log(`  ${clientes.length} clientes`);
   console.log(`  ${catalogo.length} ítems de catálogo`);
-  console.log(`  1 obra (${obraCodigo}) con 2 versiones de presupuesto`);
+  console.log(`  3 obras (con casos de seguimiento atrasado, presupuesto por vencer, vencido y cuota vencida)`);
   console.log("  config/general y contadores/ creados");
 }
 
