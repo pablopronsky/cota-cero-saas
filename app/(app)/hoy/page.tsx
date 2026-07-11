@@ -4,7 +4,9 @@ import {
   CalendarClock,
   CircleCheck,
   Clock,
+  Eye,
   FileWarning,
+  MessageSquarePlus,
   Wallet,
 } from "lucide-react";
 import { obtenerDatosHoy } from "@/lib/consultas/hoy";
@@ -12,6 +14,7 @@ import type { CuotaHoy, PresupuestoHoy, SeguimientoHoy } from "@/lib/consultas/h
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Button } from "@/components/ui/button";
 
 const fmtMoneda = (n: number) =>
   n.toLocaleString("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 });
@@ -74,23 +77,30 @@ function ItemFila({
   titulo,
   subtitulo,
   detalle,
+  acciones,
 }: {
   href: string;
   titulo: string;
   subtitulo: string;
   detalle: string;
+  acciones?: React.ReactNode;
 }) {
   return (
-    <Link
-      href={href}
-      className="flex flex-col gap-0.5 rounded-lg px-2 py-2 text-sm transition-colors hover:bg-accent/60 sm:flex-row sm:items-center sm:justify-between sm:gap-3"
-    >
-      <span className="min-w-0 truncate font-medium">{titulo}</span>
-      <span className="flex shrink-0 items-center gap-3 text-xs text-muted-foreground">
-        <span className="truncate">{subtitulo}</span>
-        <span className="tnum whitespace-nowrap">{detalle}</span>
-      </span>
-    </Link>
+    <div className="flex flex-col gap-2 rounded-lg px-2 py-2 text-sm transition-colors hover:bg-accent/60 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+      <Link href={href} className="min-w-0 flex-1">
+        <span className="block truncate font-medium">{titulo}</span>
+        <span className="mt-0.5 flex flex-wrap items-center gap-x-3 text-xs text-muted-foreground">
+          <span className="truncate">{subtitulo}</span>
+          <span className="tnum whitespace-nowrap">{detalle}</span>
+        </span>
+      </Link>
+      <div className="flex shrink-0 flex-wrap gap-1.5">
+        <Button asChild size="xs" variant="ghost">
+          <Link href={href}><Eye data-icon="inline-start" /> Ver</Link>
+        </Button>
+        {acciones}
+      </div>
+    </div>
   );
 }
 
@@ -104,6 +114,13 @@ function FilaSeguimiento({ item, hoy }: { item: SeguimientoHoy; hoy: Date }) {
       titulo={item.clienteNombre}
       subtitulo={item.obraCodigo}
       detalle={detalle}
+      acciones={item.presupuestoId ? (
+        <Button asChild size="xs" variant="outline">
+          <Link href={`/presupuestos/${item.presupuestoId}?accion=contacto`}>
+            <MessageSquarePlus data-icon="inline-start" /> Registrar contacto
+          </Link>
+        </Button>
+      ) : undefined}
     />
   );
 }
@@ -117,6 +134,13 @@ function FilaPresupuesto({ item, hoy }: { item: PresupuestoHoy; hoy: Date }) {
       titulo={item.clienteNombre}
       subtitulo={`${item.obraCodigo} v${item.version} · ${fmtMoneda(item.total)}`}
       detalle={detalle}
+      acciones={(
+        <Button asChild size="xs" variant="outline">
+          <Link href={`/presupuestos/${item.presupuestoId}?accion=contacto`}>
+            <MessageSquarePlus data-icon="inline-start" /> Registrar contacto
+          </Link>
+        </Button>
+      )}
     />
   );
 }
@@ -126,10 +150,17 @@ function FilaCuota({ item, hoy }: { item: CuotaHoy; hoy: Date }) {
   const detalle = dias < 0 ? `Vencida hace ${Math.abs(dias)}d` : `Vence en ${dias}d`;
   return (
     <ItemFila
-      href={`/presupuestos/${item.presupuestoId}`}
+      href={`/clientes/${item.clienteId}`}
       titulo={item.clienteNombre}
       subtitulo={`${item.concepto} · ${fmtMoneda(item.monto)}`}
       detalle={detalle}
+      acciones={(
+        <Button asChild size="xs" variant="outline">
+          <Link href={`/clientes/${item.clienteId}?cuota=${item.cuotaId}`}>
+            <Wallet data-icon="inline-start" /> Registrar pago
+          </Link>
+        </Button>
+      )}
     />
   );
 }

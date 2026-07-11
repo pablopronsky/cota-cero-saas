@@ -24,6 +24,7 @@ export interface PresupuestoHoy {
 
 export interface CuotaHoy {
   cuotaId: string;
+  clienteId: string;
   obraCodigo: string;
   clienteNombre: string;
   presupuestoId: string;
@@ -149,6 +150,7 @@ async function obtenerCuotas(
 
     const item: CuotaHoy = {
       cuotaId: doc.id,
+      clienteId: cuota.clienteId,
       obraCodigo: cuota.obraCodigo,
       clienteNombre: cuota.clienteNombre,
       presupuestoId: cuota.presupuestoId,
@@ -174,10 +176,26 @@ async function obtenerIndicadores(hoy: Date): Promise<IndicadoresMes> {
     !!t && t.toMillis() >= inicioTs.toMillis() && t.toMillis() <= finTs.toMillis();
 
   const [presupuestosSnap, confirmacionesSnap, pagosSnap, cerradasSnap] = await Promise.all([
-    adminDb.collection("presupuestos").where("esLegado", "==", false).get(),
-    adminDb.collection("movimientos").where("tipo", "==", "CONFIRMACION_PRESUPUESTO").get(),
-    adminDb.collection("movimientos").where("tipo", "==", "PAGO").get(),
-    adminDb.collection("obras").where("estadoComercial", "in", ["Ganado", "Perdido"]).get(),
+    adminDb.collection("presupuestos")
+      .where("esLegado", "==", false)
+      .where("fechaEmision", ">=", inicioTs)
+      .where("fechaEmision", "<=", finTs)
+      .get(),
+    adminDb.collection("movimientos")
+      .where("tipo", "==", "CONFIRMACION_PRESUPUESTO")
+      .where("fechaHora", ">=", inicioTs)
+      .where("fechaHora", "<=", finTs)
+      .get(),
+    adminDb.collection("movimientos")
+      .where("tipo", "==", "PAGO")
+      .where("fechaHora", ">=", inicioTs)
+      .where("fechaHora", "<=", finTs)
+      .get(),
+    adminDb.collection("obras")
+      .where("estadoComercial", "in", ["Ganado", "Perdido"])
+      .where("actualizadoEn", ">=", inicioTs)
+      .where("actualizadoEn", "<=", finTs)
+      .get(),
   ]);
 
   const emitido = presupuestosSnap.docs.reduce((acc, d) => {

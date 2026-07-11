@@ -71,12 +71,14 @@ export function PanelComercial({
   clienteNombre,
   total,
   venceEl,
+  abrirContactoInicial = false,
 }: {
   obraCodigo: string;
   versionPresupuesto: number;
   clienteNombre: string;
   total: number;
   venceEl: FechaConToDate | null;
+  abrirContactoInicial?: boolean;
 }) {
   const [obra, setObra] = useState<Obra | null | undefined>(undefined);
   const [estado, setEstado] = useState<EstadoComercial | null>(null);
@@ -85,7 +87,7 @@ export function PanelComercial({
   const [fechaSeguimiento, setFechaSeguimiento] = useState<string | null>(null);
   const [guardandoEstado, setGuardandoEstado] = useState(false);
   const [guardandoSeguimiento, setGuardandoSeguimiento] = useState(false);
-  const [dialogContacto, setDialogContacto] = useState(false);
+  const [dialogContacto, setDialogContacto] = useState(abrirContactoInicial);
 
   useEffect(() => {
     return onSnapshot(doc(db, "obras", obraCodigo), (snap) => {

@@ -58,7 +58,13 @@ interface PresupuestoConId extends Presupuesto {
 const fmtMoneda = (n: number) => n.toLocaleString("es-AR", { style: "currency", currency: "ARS" });
 const fmtFecha = (ts: Timestamp) => (ts ? ts.toDate().toLocaleDateString("es-AR") : "—");
 
-export function CuentaCorrienteCliente({ clienteId }: { clienteId: string }) {
+export function CuentaCorrienteCliente({
+  clienteId,
+  cuotaPagoInicialId,
+}: {
+  clienteId: string;
+  cuotaPagoInicialId?: string;
+}) {
   const [cliente, setCliente] = useState<Cliente | null | undefined>(undefined);
   const [movimientos, setMovimientos] = useState<MovimientoConId[] | null>(null);
   const [presupuestos, setPresupuestos] = useState<PresupuestoConId[] | null>(null);
@@ -200,7 +206,12 @@ export function CuentaCorrienteCliente({ clienteId }: { clienteId: string }) {
         </Button>
       </div>
 
-      <PanelPlanCobro modo="cliente" clienteId={clienteId} clienteNombre={cliente.nombre} />
+      <PanelPlanCobro
+        modo="cliente"
+        clienteId={clienteId}
+        clienteNombre={cliente.nombre}
+        cuotaPagoInicialId={cuotaPagoInicialId}
+      />
 
       {/* Tabla — desktop/tablet */}
       <div className="hidden overflow-hidden rounded-xl bg-card ring-1 ring-foreground/10 md:block">

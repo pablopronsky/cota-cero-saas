@@ -2,9 +2,11 @@ import { DetallePresupuesto } from "@/components/presupuestos/detalle-presupuest
 
 export default async function PresupuestoPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ accion?: string }>;
 }) {
-  const { id } = await params;
-  return <DetallePresupuesto id={id} />;
+  const [{ id }, query] = await Promise.all([params, searchParams]);
+  return <DetallePresupuesto id={id} abrirContactoInicial={query.accion === "contacto"} />;
 }
