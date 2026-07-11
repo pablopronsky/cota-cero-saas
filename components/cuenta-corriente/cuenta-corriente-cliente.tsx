@@ -45,6 +45,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { TipoMovimientoBadge } from "@/components/estado-badge";
+import { PanelPlanCobro } from "@/components/cobro/panel-plan-cobro";
 
 interface MovimientoConId extends Movimiento {
   id: string;
@@ -198,6 +199,8 @@ export function CuentaCorrienteCliente({ clienteId }: { clienteId: string }) {
           Ajuste manual
         </Button>
       </div>
+
+      <PanelPlanCobro modo="cliente" clienteId={clienteId} clienteNombre={cliente.nombre} />
 
       {/* Tabla — desktop/tablet */}
       <div className="hidden overflow-hidden rounded-xl bg-card ring-1 ring-foreground/10 md:block">

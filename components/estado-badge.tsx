@@ -2,6 +2,7 @@ import type {
   EstadoCatalogo,
   EstadoCliente,
   EstadoComercial,
+  EstadoCuota,
   EstadoPresupuesto,
   TipoMovimiento,
 } from "@/lib/tipos";
@@ -116,6 +117,16 @@ const TIPO_MOVIMIENTO_LABEL: Record<TipoMovimiento, string> = {
 
 export function TipoMovimientoBadge({ tipo }: { tipo: TipoMovimiento }) {
   return <Pill tono={TIPO_MOVIMIENTO_TONO[tipo]}>{TIPO_MOVIMIENTO_LABEL[tipo]}</Pill>;
+}
+
+const ESTADO_CUOTA_TONO: Record<EstadoCuota, Tono> = {
+  Pendiente: "cobre",
+  Cobrada: "exito",
+  Anulada: "neutro",
+};
+
+export function EstadoCuotaBadge({ estado }: { estado: EstadoCuota }) {
+  return <Pill tono={ESTADO_CUOTA_TONO[estado]}>{estado}</Pill>;
 }
 
 /** Aviso "Verificar": ítems con precio dudoso heredado de la migración. */
