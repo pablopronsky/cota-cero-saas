@@ -117,6 +117,12 @@ export async function confirmarPresupuesto(presupuestoId: string): Promise<Resul
           .where("estado", "==", "Emitido"),
       );
 
+      // El eje comercial vive en la obra: confirmar el presupuesto no altera la
+      // lógica contable, pero cierra la negociación en la misma transacción.
+      const obraRef = adminDb.collection("obras").doc(presupuesto.obraCodigo);
+      const obraSnap = await tx.get(obraRef);
+      if (!obraSnap.exists) throw new ErrorValidacion("Obra no encontrada");
+
       const codigo = await proximoCodigo(tx, "movimientos");
       const ahora = FieldValue.serverTimestamp();
 
@@ -142,6 +148,13 @@ export async function confirmarPresupuesto(presupuestoId: string): Promise<Resul
       });
 
       tx.update(presupuestoRef, { estado: "Confirmado", actualizadoEn: ahora });
+
+      tx.update(obraRef, {
+        estadoComercial: "Ganado",
+        motivoPerdida: null,
+        motivoPerdidaDetalle: "",
+        actualizadoEn: ahora,
+      });
 
       tx.update(clienteRef, {
         saldo: cliente.saldo + presupuesto.total,
