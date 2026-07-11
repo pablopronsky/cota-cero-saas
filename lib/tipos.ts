@@ -186,6 +186,33 @@ export interface Movimiento {
   creadoPor: string;
 }
 
+export type EstadoCuota = "Pendiente" | "Cobrada" | "Anulada";
+
+export interface Cuota {
+  /**
+   * Colección top-level `cuotas` (doc ID autogenerado). Top-level a propósito:
+   * la Fase C necesita consultar vencimientos de TODAS las obras.
+   *
+   * Una cuota es PLANIFICACIÓN: nunca modifica `saldo` ni crea/edita movimientos
+   * por sí misma. La verdad contable sigue saliendo solo de `movimientos`.
+   */
+  obraCodigo: string;
+  presupuestoId: string;
+  clienteId: string;
+  clienteNombre: string; // denormalizado, como en movimientos
+  concepto: string; // "Anticipo 45%", "Contra entrega", "Cuota 2/3"
+  monto: number;
+  venceEl: Timestamp;
+  estado: EstadoCuota;
+  /** id del movimiento PAGO que la saldó; solo lo setea el pago transaccional. */
+  movimientoId: string | null;
+  orden: number;
+  notas: string;
+  creadoPor: string;
+  creadoEn: Timestamp;
+  actualizadoEn: Timestamp;
+}
+
 export type NombreContador = "clientes" | "movimientos" | `obras-${number}`;
 
 export interface Contador {
