@@ -5,32 +5,23 @@ import { adminDb } from "@/lib/firebase/admin";
 import { proximoCodigo } from "@/lib/firebase/numeracion";
 import { obtenerUsuarioSesion } from "@/lib/firebase/sesion";
 import { puedeAnularse, puedeConfirmarse } from "@/lib/reglas/validaciones";
-import type { Cliente, Movimiento, Presupuesto } from "@/lib/tipos";
+import type { Cliente, Cuota, Movimiento, Presupuesto } from "@/lib/tipos";
+import {
+  ErrorSaldoAFavor,
+  ErrorValidacion,
+  exigirMotivo,
+  fmtMonto,
+  mensajeError,
+  registrarPagoEnTx,
+  type DatosPago,
+} from "@/lib/acciones/cuentaCorrienteTx";
 
-/** Errores esperados (validación de negocio) cuyo mensaje es seguro mostrar tal cual. */
-class ErrorValidacion extends Error {}
-
-/** Pago que supera el saldo deudor sin permitirSaldoAFavor: la UI debe confirmar y reintentar. */
-class ErrorSaldoAFavor extends Error {
-  constructor(public saldoResultante: number) {
-    super("El pago genera saldo a favor");
-  }
-}
+export type { DatosPago };
 
 export type ResultadoAccion = { ok: true } | { ok: false; error: string };
 export type ResultadoPago =
   | { ok: true; movimientoId: string }
   | { ok: false; error: string; codigoError?: "SALDO_A_FAVOR"; saldoResultante?: number };
-
-export interface DatosPago {
-  clienteId: string;
-  monto: number;
-  medioPago?: string;
-  referencia?: string;
-  presupuestoId?: string | null;
-  /** Si el pago supera el saldo deudor, hay que reintentar con esto en true. */
-  permitirSaldoAFavor?: boolean;
-}
 
 export interface DatosAjuste {
   clienteId: string;
@@ -43,22 +34,6 @@ async function requerirUsuario() {
   const usuario = await obtenerUsuarioSesion();
   if (!usuario) throw new ErrorValidacion("No autenticado");
   return usuario;
-}
-
-function mensajeError(err: unknown): string {
-  if (err instanceof ErrorValidacion) return err.message;
-  console.error(err);
-  return "Ocurrió un error inesperado. Intentá de nuevo.";
-}
-
-function fmtMonto(n: number): string {
-  return n.toLocaleString("es-AR", { style: "currency", currency: "ARS" });
-}
-
-function exigirMotivo(motivo: string): string {
-  const limpio = motivo.trim();
-  if (!limpio) throw new ErrorValidacion("El motivo es obligatorio");
-  return limpio;
 }
 
 /**
@@ -182,63 +157,9 @@ export async function confirmarPresupuesto(presupuestoId: string): Promise<Resul
 export async function registrarPago(datos: DatosPago): Promise<ResultadoPago> {
   try {
     const usuario = await requerirUsuario();
-    if (!(datos.monto > 0)) throw new ErrorValidacion("El monto debe ser mayor a cero");
-
-    const resultado = await adminDb.runTransaction(async (tx) => {
-      const clienteRef = adminDb.collection("clientes").doc(datos.clienteId);
-      const clienteSnap = await tx.get(clienteRef);
-      if (!clienteSnap.exists) throw new ErrorValidacion("Cliente no encontrado");
-      const cliente = clienteSnap.data() as Cliente;
-
-      let presupuesto: Presupuesto | null = null;
-      if (datos.presupuestoId) {
-        const presupuestoSnap = await tx.get(
-          adminDb.collection("presupuestos").doc(datos.presupuestoId),
-        );
-        if (!presupuestoSnap.exists) throw new ErrorValidacion("Presupuesto no encontrado");
-        presupuesto = presupuestoSnap.data() as Presupuesto;
-        if (presupuesto.clienteId !== datos.clienteId) {
-          throw new ErrorValidacion("El presupuesto no pertenece a este cliente");
-        }
-      }
-
-      const nuevoSaldo = cliente.saldo - datos.monto;
-      if (nuevoSaldo < 0 && !datos.permitirSaldoAFavor) {
-        throw new ErrorSaldoAFavor(nuevoSaldo);
-      }
-
-      const codigo = await proximoCodigo(tx, "movimientos");
-      const ahora = FieldValue.serverTimestamp();
-      const movimientoRef = adminDb.collection("movimientos").doc();
-
-      tx.set(movimientoRef, {
-        codigo,
-        fechaHora: ahora,
-        clienteId: datos.clienteId,
-        clienteNombre: cliente.nombre,
-        tipo: "PAGO",
-        presupuestoId: datos.presupuestoId ?? null,
-        codigoObra: presupuesto?.obraCodigo ?? "",
-        versionPresupuesto: presupuesto?.version ?? 0,
-        concepto: presupuesto
-          ? `Pago - ${presupuesto.obraCodigo} v${presupuesto.version}`
-          : "Pago",
-        debe: 0,
-        haber: datos.monto,
-        medioPago: datos.medioPago?.trim() ?? "",
-        referencia: datos.referencia?.trim() ?? "",
-        motivo: "",
-        movAnuladoId: null,
-        reciboPath: "",
-        notas: "",
-        creadoPor: usuario.uid,
-      });
-
-      tx.update(clienteRef, { saldo: nuevoSaldo, actualizadoEn: ahora });
-
-      return { movimientoId: movimientoRef.id };
-    });
-
+    const resultado = await adminDb.runTransaction((tx) =>
+      registrarPagoEnTx(tx, usuario.uid, datos),
+    );
     return { ok: true, ...resultado };
   } catch (err) {
     if (err instanceof ErrorSaldoAFavor) {
@@ -370,6 +291,13 @@ export async function anularPago(movimientoId: string, motivo: string): Promise<
       if (!clienteSnap.exists) throw new ErrorValidacion("Cliente no encontrado");
       const cliente = clienteSnap.data() as Cliente;
 
+      // Si este pago saldó una cuota, hay que revertirla en el MISMO átomo. Es
+      // una escritura de planificación (no toca saldo ni movimientos); la lectura
+      // va acá, antes de cualquier escritura de la transacción.
+      const cuotaVinculadaSnap = await tx.get(
+        adminDb.collection("cuotas").where("movimientoId", "==", movimientoId).limit(1),
+      );
+
       const codigo = await proximoCodigo(tx, "movimientos");
       const ahora = FieldValue.serverTimestamp();
 
@@ -398,6 +326,15 @@ export async function anularPago(movimientoId: string, motivo: string): Promise<
         saldo: cliente.saldo + movimiento.haber,
         actualizadoEn: ahora,
       });
+
+      const cuotaVinculada = cuotaVinculadaSnap.docs[0];
+      if (cuotaVinculada) {
+        tx.update(cuotaVinculada.ref, {
+          estado: "Pendiente" satisfies Cuota["estado"],
+          movimientoId: null,
+          actualizadoEn: ahora,
+        });
+      }
     });
 
     return { ok: true };
