@@ -52,7 +52,13 @@ const MODALIDAD_LABEL: Record<ModalidadPresupuesto, string> = {
 const fmtMoneda = (n: number) => n.toLocaleString("es-AR", { style: "currency", currency: "ARS" });
 const fmtFecha = (ts: Timestamp) => (ts ? ts.toDate().toLocaleDateString("es-AR") : "—");
 
-export function DetallePresupuesto({ id }: { id: string }) {
+export function DetallePresupuesto({
+  id,
+  abrirContactoInicial = false,
+}: {
+  id: string;
+  abrirContactoInicial?: boolean;
+}) {
   const router = useRouter();
   const [presupuesto, setPresupuesto] = useState<Presupuesto | null | undefined>(undefined);
   const [dialogDuplicar, setDialogDuplicar] = useState(false);
@@ -278,6 +284,7 @@ export function DetallePresupuesto({ id }: { id: string }) {
         clienteNombre={presupuesto.clienteNombre}
         total={presupuesto.total}
         venceEl={presupuesto.venceEl as unknown as { toDate(): Date } | null}
+        abrirContactoInicial={abrirContactoInicial}
       />
 
       {presupuesto.estado === "Confirmado" && (

@@ -33,7 +33,7 @@ export default function LoginPage() {
       const idToken = await credencial.user.getIdToken();
       startTransition(async () => {
         await iniciarSesion(idToken);
-        router.push("/clientes");
+        router.push("/hoy");
         router.refresh();
       });
     } catch {

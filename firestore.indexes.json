@@ -33,6 +33,38 @@
       ]
     },
     {
+      "collectionGroup": "presupuestos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "estado", "order": "ASCENDING" },
+        { "fieldPath": "venceEl", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "presupuestos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "esLegado", "order": "ASCENDING" },
+        { "fieldPath": "fechaEmision", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "movimientos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "tipo", "order": "ASCENDING" },
+        { "fieldPath": "fechaHora", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "obras",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "estadoComercial", "order": "ASCENDING" },
+        { "fieldPath": "actualizadoEn", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "obras",
       "queryScope": "COLLECTION",
       "fields": [

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { collection, onSnapshot, orderBy, query, where } from "firebase/firestore";
 import { CalendarPlus, ClipboardCopy, ListPlus, Pencil, Trash2, Wallet } from "lucide-react";
 import { toast } from "sonner";
@@ -61,14 +61,16 @@ type Props =
       presupuestoId: string;
       clienteNombre: string;
       total: number;
+      cuotaPagoInicialId?: string;
     }
-  | { modo: "cliente"; clienteId: string; clienteNombre: string };
+  | { modo: "cliente"; clienteId: string; clienteNombre: string; cuotaPagoInicialId?: string };
 
 export function PanelPlanCobro(props: Props) {
   const [cuotas, setCuotas] = useState<CuotaConId[] | null>(null);
   const [dialogGenerar, setDialogGenerar] = useState(false);
   const [dialogCuota, setDialogCuota] = useState<{ modo: "crear" } | { modo: "editar"; cuota: CuotaConId } | null>(null);
   const [cuotaAPagar, setCuotaAPagar] = useState<CuotaConId | null>(null);
+  const cuotaPagoInicialId = useRef(props.cuotaPagoInicialId);
   const [cuotaAAnular, setCuotaAAnular] = useState<CuotaConId | null>(null);
 
   const clave = props.modo === "presupuesto" ? props.obraCodigo : props.clienteId;
@@ -80,7 +82,17 @@ export function PanelPlanCobro(props: Props) {
         : query(collection(db, "cuotas"), where("clienteId", "==", clave), orderBy("venceEl", "asc"));
     return onSnapshot(
       q,
-      (snap) => setCuotas(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Cuota) }))),
+      (snap) => {
+        const siguientes = snap.docs.map((d) => ({ id: d.id, ...(d.data() as Cuota) }));
+        setCuotas(siguientes);
+        if (cuotaPagoInicialId.current) {
+          const cuota = siguientes.find(
+            (item) => item.id === cuotaPagoInicialId.current && item.estado === "Pendiente",
+          );
+          if (cuota) setCuotaAPagar(cuota);
+          cuotaPagoInicialId.current = undefined;
+        }
+      },
       (error) => {
         if (error.code !== "permission-denied") console.error(error);
       },

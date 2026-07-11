@@ -3,12 +3,13 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FileText, Menu, Package, Users, Wallet, X } from "lucide-react";
+import { CalendarClock, FileText, Menu, Package, Users, Wallet, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CerrarSesionBoton } from "@/components/cerrar-sesion-boton";
 import type { UsuarioSesion } from "@/lib/firebase/sesion";
 
 const ENLACES = [
+  { href: "/hoy", label: "Hoy", icon: CalendarClock },
   { href: "/presupuestos", label: "Presupuestos", icon: FileText },
   { href: "/clientes", label: "Clientes", icon: Users },
   { href: "/catalogo", label: "Catálogo", icon: Package },
@@ -110,7 +111,7 @@ export function NavPrincipal({ usuario }: { usuario: UsuarioSesion }) {
     <>
       {/* Barra superior — solo mobile/tablet */}
       <header className="sticky top-0 z-30 flex items-center justify-between border-b border-sidebar-border bg-sidebar px-4 py-3 lg:hidden">
-        <Link href="/presupuestos" className="inline-block">
+        <Link href="/hoy" className="inline-block">
           <img
             src="/logo/cota_cero_logo_negativo_outline.svg"
             alt="COTA CERO"
@@ -179,7 +180,7 @@ export function NavPrincipal({ usuario }: { usuario: UsuarioSesion }) {
       <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col justify-between bg-sidebar text-sidebar-foreground lg:flex">
         <div>
           <div className="px-5 pt-6 pb-5">
-            <Link href="/presupuestos" className="inline-block">
+            <Link href="/hoy" className="inline-block">
               <img
                 src="/logo/cota_cero_logo_negativo_con_descriptor_outline.svg"
                 alt="COTA CERO — Superficies y terminaciones"

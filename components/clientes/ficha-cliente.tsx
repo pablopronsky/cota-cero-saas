@@ -25,7 +25,7 @@ function Dato({ label, valor }: { label: string; valor: React.ReactNode }) {
   );
 }
 
-export function FichaCliente({ codigo }: { codigo: string }) {
+export function FichaCliente({ codigo, cuotaPagoInicialId }: { codigo: string; cuotaPagoInicialId?: string }) {
   const [cliente, setCliente] = useState<Cliente | null | undefined>(undefined);
   const [dialogEditar, setDialogEditar] = useState(false);
   const [cambiandoEstado, setCambiandoEstado] = useState(false);
@@ -151,7 +151,7 @@ export function FichaCliente({ codigo }: { codigo: string }) {
             <CardTitle>Cuenta corriente</CardTitle>
           </CardHeader>
           <CardContent>
-            <CuentaCorrienteCliente clienteId={codigo} />
+            <CuentaCorrienteCliente clienteId={codigo} cuotaPagoInicialId={cuotaPagoInicialId} />
           </CardContent>
         </Card>
       </div>
